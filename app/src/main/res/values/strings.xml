@@ -5,6 +5,11 @@
 
     <string name="home_open_book">Open book</string>
     <string name="home_settings">Settings</string>
+    <string name="home_continue">Continue reading</string>
+    <string name="home_recent">Recent</string>
+    <string name="home_empty">Books you open will appear here.</string>
+    <string name="home_remove">Remove from library</string>
+    <string name="progress_percent">%1$d%%</string>
 
     <string name="reader_minutes_left">%1$d min left</string>
     <string name="reader_slower">Slower</string>
@@ -12,8 +17,10 @@
     <string name="reader_words_per_minute">%1$d wpm</string>
     <string name="reader_context">Context</string>
     <string name="reader_chapters">Chapters</string>
+    <string name="reader_error_missing">This book can no longer be found. It may have been moved or deleted.</string>
+    <string name="reader_error_unreadable">This file could not be opened as a book.</string>
+    <string name="reader_error_no_text">This book contains no text to read.</string>
     <string name="reader_chapter_progress">Chapter %1$d of %2$d · %3$d%%</string>
-    <string name="reader_book_progress">%1$d%%</string>
 
     <string name="settings_title">Settings</string>
 </resources>

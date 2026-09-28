@@ -26,12 +26,13 @@ Milestones are done in order. Each ends with a building, testable app.
 *Goal: the reading experience feels right before any file handling exists.*
 
 ## M2 — EPUB and library
-- [ ] Open file via system picker, persist URI permission; replace `SampleBook`
-- [ ] Reader ViewModel keyed per book (`viewModel(key = …)`)
-- [ ] EPUB parser incl. ToC-based heading detection, with tests
-- [ ] Parsed-book cache
-- [ ] Library store: recent books, reading positions, resume
-- [ ] Home screen: continue card, recent list, remove
+- [x] Open file via system picker, persist URI permission; replace `SampleBook`
+- [x] Reader view model scoped to the reader screen
+- [x] EPUB parser incl. ToC-based heading detection, with tests (also checked on Gutenberg and Standard Ebooks books)
+- [x] Parsed-book cache
+- [x] Library store: recent books, reading positions, resume
+- [x] Home screen: continue card, recent list, remove
+- [x] Verify on a device: picker, loading, resume after restart, removing, error messages
 
 ## M3 — PDF
 - [ ] PdfBox-Android text extraction with font sizes

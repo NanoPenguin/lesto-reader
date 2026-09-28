@@ -1,5 +1,6 @@
 package io.github.nanopenguin.pace.reader
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -37,8 +41,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.nanopenguin.pace.book.SampleBook
+import io.github.nanopenguin.pace.R
+import io.github.nanopenguin.pace.appContainer
+import io.github.nanopenguin.pace.book.BookError
 import io.github.nanopenguin.pace.ui.BackButton
 import io.github.nanopenguin.pace.ui.theme.PaceTheme
 import kotlin.math.abs
@@ -48,11 +55,17 @@ private val WordFontSize = 40.sp
 /** Duration of the page's sideways glide to the current word. */
 private const val PAN_MILLIS = 200
 
+/** Reads the book at [uri]. Its view model, and with it the book, lives as long as this screen. */
 @Composable
 fun ReaderScreen(
+    uri: Uri,
     onClose: () -> Unit,
-    viewModel: ReaderViewModel = viewModel { ReaderViewModel(SampleBook) },
 ) {
+    val container = LocalContext.current.appContainer
+    val viewModel =
+        viewModel(viewModelStoreOwner = rememberViewModelStoreOwner()) {
+            ReaderViewModel(uri, container.books, container.library, container.scope)
+        }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { viewModel.pause() }
@@ -89,6 +102,17 @@ private fun ReaderScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    state.error?.let {
+        ReaderError(it, onClose)
+        return
+    }
+    if (state.isLoading) {
+        Box(modifier = modifier.fillMaxSize()) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
+        return
+    }
+
     var showChapters by rememberSaveable { mutableStateOf(false) }
     val wordStyle = MaterialTheme.typography.displaySmall.copy(fontSize = WordFontSize)
     val lineHeight = with(LocalDensity.current) { WordFontSize.toPx() } * LINE_SPACING
@@ -227,6 +251,30 @@ private fun ReaderScreen(
 }
 
 @Composable
+private fun ReaderError(
+    error: BookError,
+    onClose: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+        BackButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart))
+        Text(
+            text =
+            stringResource(
+                when (error) {
+                    BookError.Missing -> R.string.reader_error_missing
+                    BookError.Unreadable -> R.string.reader_error_unreadable
+                    BookError.NoText -> R.string.reader_error_no_text
+                },
+            ),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
+        )
+    }
+}
+
+@Composable
 private fun HeadingText(
     text: String,
     modifier: Modifier = Modifier,
@@ -248,6 +296,8 @@ private fun ReaderScreenPreview() {
         ReaderScreen(
             state =
             ReaderUiState(
+                isLoading = false,
+                error = null,
                 bookTitle = "Alice’s Adventures in Wonderland",
                 frame = Frame("considering", isHeading = false, Pause.None, blockIndex = 0),
                 wordsBefore = emptyList(),

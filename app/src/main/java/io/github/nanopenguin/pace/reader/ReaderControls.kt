@@ -64,7 +64,7 @@ fun ReaderControls(
                 if (state.chapterIndex != null) {
                     stringResource(R.string.reader_chapter_progress, state.chapterIndex + 1, state.chapters.size, percent)
                 } else {
-                    stringResource(R.string.reader_book_progress, percent)
+                    stringResource(R.string.progress_percent, percent)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = muted,

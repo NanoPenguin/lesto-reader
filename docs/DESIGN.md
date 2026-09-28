@@ -66,9 +66,10 @@ Parsers only produce blocks. Everything about display and timing belongs to the 
 
 ### EPUB parsing
 
-Zip → `META-INF/container.xml` → OPF (metadata, manifest, spine) → each spine XHTML in order, parsed with Jsoup.
-- `h1`–`h6` become `Heading`s. Elements targeted by the table of contents (EPUB 3 nav or EPUB 2 NCX) are also treated as headings, which catches books that style chapter titles as `<p class="...">`.
-- Block-level elements (`p`, `div`, `li`, `blockquote`, …) become `Paragraph`s. Images, scripts and styles are dropped.
+Zip → `META-INF/container.xml` → OPF (metadata, manifest, spine) → each linear spine document in order, parsed with Jsoup as XML (HTML as fallback).
+- `h1`–`h6` become `Heading`s; an `hgroup` becomes one heading ("I: Down the Rabbit-Hole").
+- Table of contents targets (EPUB 3 nav or EPUB 2 NCX) are headings too. A target at a container or document start waits for the first text: if it is short and matches the entry's label it becomes the heading, otherwise the label is inserted as one.
+- Block-level elements (`p`, `div`, `li`, `blockquote`, …) become `Paragraph`s. Images, scripts, styles, captions, footnotes and footnote markers are dropped.
 
 ### PDF parsing
 
@@ -90,15 +91,15 @@ Uses PdfBox-Android to extract text with font sizes, line by line.
   | End of paragraph | 1.5 |
   | Heading | 2.0 |
   After pressing play, the first five frames ease in from half speed.
-- **Position.** The position is the frame index. It is stored together with a parser version; if the version changed, the position is restored proportionally.
+- **Position.** The position is the frame index, saved with the book's frame count once it has been still for a second. If the count differs when the book is reopened (e.g. after a parser update), the position is restored proportionally.
 - **Context words.** When enabled, neighbouring words are laid out on the same line around the current word, dimmed and fading towards the edges.
 
 ### Storage
 
 - **Files:** Storage Access Framework with persistable URI permissions. No storage permission.
 - **Settings:** DataStore (Preferences).
-- **Library:** DataStore holding a JSON list (kotlinx.serialization) of `{uri, title, author, position, frameCount, lastOpened}`.
-- **Parsed-book cache:** JSON of `Book` in the app cache directory, keyed by URI + size + last modified. Large PDFs are parsed once.
+- **Library:** DataStore holding a JSON list (kotlinx.serialization) of `{uri, title, author, position, frameCount, lastOpened}`. Removing a book also releases its file permission and cache.
+- **Parsed-book cache:** JSON of `Book` in the app cache directory, one file per URI, valid while parser version, file size and modification time match.
 
 ### Dependencies
 
@@ -110,4 +111,4 @@ Uses PdfBox-Android to extract text with font sizes, line by line.
 | Jsoup | tolerant (X)HTML parsing for EPUB |
 | PdfBox-Android | PDF text extraction with font information (Apache-2.0) |
 
-Navigation between the three screens is a small state holder with `BackHandler`; no navigation library.
+Navigation between the three screens is a small state holder with `BackHandler`; no navigation library. The reader's view model is scoped to the reader screen (`rememberViewModelStoreOwner`), so a closed book is released.

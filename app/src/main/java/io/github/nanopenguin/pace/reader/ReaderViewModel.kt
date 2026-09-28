@@ -1,14 +1,21 @@
 package io.github.nanopenguin.pace.reader
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.nanopenguin.pace.book.Book
+import io.github.nanopenguin.pace.book.BookError
+import io.github.nanopenguin.pace.book.BookException
+import io.github.nanopenguin.pace.book.BookRepository
+import io.github.nanopenguin.pace.library.LibraryStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 
 private const val DEFAULT_WORDS_PER_MINUTE = 300
@@ -24,7 +31,13 @@ private const val PAGE_LINES = 6
 /** Sentences longer than this are split over several page lines. */
 private const val MAX_LINE_WORDS = 200
 
+/** The position is saved once it has stopped changing for this long. */
+private const val SAVE_DELAY_MILLIS = 1000L
+
 data class ReaderUiState(
+    val isLoading: Boolean,
+    /** Why the book could not be opened, if it could not. */
+    val error: BookError?,
     val bookTitle: String,
     /** The frame on screen, or null if the book has no text. */
     val frame: Frame?,
@@ -45,17 +58,52 @@ data class ReaderUiState(
     val showContext: Boolean,
 )
 
+/** Plays the book at [uri] and keeps its reading position in the [library]. */
 class ReaderViewModel(
-    private val book: Book,
+    private val uri: Uri,
+    private val books: BookRepository,
+    private val library: LibraryStore,
+    /** Outlives this view model, so the last position is saved even as the reader closes. */
+    private val appScope: CoroutineScope,
 ) : ViewModel() {
-    private val text = book.toRsvpText()
+    private var isLoading = true
+    private var error: BookError? = null
+    private var bookTitle = ""
+    private var text = RsvpText(emptyList(), emptyList())
     private var position = 0
+    private var savedPosition = 0
     private var wordsPerMinute = DEFAULT_WORDS_PER_MINUTE
     private var showContext = false
     private var playback: Job? = null
+    private var pendingSave: Job? = null
 
     private val _uiState = MutableStateFlow(render())
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch { load() }
+    }
+
+    private suspend fun load() {
+        try {
+            val book = books.load(uri)
+            text = withContext(Dispatchers.Default) { book.toRsvpText() }
+            bookTitle = book.title
+            position = library.open(uri.toString(), book.title, book.author, text.frames.size)
+            savedPosition = position
+        } catch (exception: BookException) {
+            error = exception.error
+        }
+        isLoading = false
+        publish()
+    }
+
+    override fun onCleared() {
+        if (position != savedPosition) {
+            val last = position
+            appScope.launch { library.savePosition(uri.toString(), last) }
+        }
+    }
 
     fun togglePlayback() {
         if (playback != null) pause() else play()
@@ -127,6 +175,17 @@ class ReaderViewModel(
 
     private fun publish() {
         _uiState.value = render()
+        if (position != savedPosition) scheduleSave()
+    }
+
+    private fun scheduleSave() {
+        pendingSave?.cancel()
+        pendingSave =
+            viewModelScope.launch {
+                delay(SAVE_DELAY_MILLIS)
+                library.savePosition(uri.toString(), position)
+                savedPosition = position
+            }
     }
 
     private fun render(): ReaderUiState {
@@ -135,7 +194,9 @@ class ReaderViewModel(
         val secondsLeft =
             if (frame != null) text.units(position..section.last) * millisPerUnit(wordsPerMinute) / 1000 else 0.0
         return ReaderUiState(
-            bookTitle = book.title,
+            isLoading = isLoading,
+            error = error,
+            bookTitle = bookTitle,
             frame = frame,
             wordsBefore = if (frame != null && showContext) text.wordsBefore(position, CONTEXT_WORD_COUNT) else emptyList(),
             wordsAfter = if (frame != null && showContext) text.wordsAfter(position, CONTEXT_WORD_COUNT) else emptyList(),
