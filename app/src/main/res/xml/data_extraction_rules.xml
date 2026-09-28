@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 and later. Only settings are backed up: the library is a reading history, and its file permissions do not survive a restore anyway. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="datastore/settings.json" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="datastore/settings.json" />
+    </device-transfer>
+</data-extraction-rules>

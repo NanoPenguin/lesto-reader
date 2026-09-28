@@ -23,7 +23,7 @@ A minimal RSVP reader for Android: your EPUB and PDF books, one word at a time.
 
 - EPUB and PDF, with chapters
 - Remembers where you left off
-- No permissions, no network, no tracking
+- No permissions requested, no network, no tracking
 
 **Status:** early development, see [docs/PLAN.md](docs/PLAN.md).
 

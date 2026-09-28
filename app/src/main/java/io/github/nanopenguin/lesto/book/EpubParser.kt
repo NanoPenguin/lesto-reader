@@ -7,6 +7,7 @@ import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
 import org.jsoup.parser.Parser
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.URLDecoder
 import java.util.zip.ZipInputStream
@@ -81,7 +82,8 @@ private fun readTextEntries(input: InputStream): Map<String, ByteArray> {
         while (true) {
             val entry = zip.nextEntry ?: break
             if (entry.isDirectory || entry.name.substringAfterLast('.').lowercase() !in TextExtensions) continue
-            val bytes = zip.readBytes()
+            // Reading one byte past the budget is enough to tell it was exceeded, without inflating the rest.
+            val bytes = zip.readAtMost(MAX_TEXT_BYTES - total + 1)
             total += bytes.size
             if (total > MAX_TEXT_BYTES) throw BookFormatException("Book is too large")
             files[entry.name] = bytes
@@ -89,6 +91,17 @@ private fun readTextEntries(input: InputStream): Map<String, ByteArray> {
     }
     if (files.isEmpty()) throw BookFormatException("Not an EPUB")
     return files
+}
+
+private fun InputStream.readAtMost(limit: Long): ByteArray {
+    val output = ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    while (output.size() < limit) {
+        val read = read(buffer, 0, minOf(buffer.size.toLong(), limit - output.size()).toInt())
+        if (read < 0) break
+        output.write(buffer, 0, read)
+    }
+    return output.toByteArray()
 }
 
 private fun parseXml(bytes: ByteArray): Document = Jsoup.parse(ByteArrayInputStream(bytes), "UTF-8", "", Parser.xmlParser())

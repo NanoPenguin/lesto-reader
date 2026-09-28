@@ -102,6 +102,7 @@ Uses PdfBox-Android to extract upright text line by line, with font sizes and po
 - **Files:** Storage Access Framework with persistable URI permissions. No storage permission.
 - **Settings:** DataStore holding JSON (kotlinx.serialization) of `{theme, textSize, showContext, wordsPerMinute}`; the reader reads and saves speed and context words there.
 - **Library:** DataStore holding a JSON list (kotlinx.serialization) of `{uri, title, author, position, frameCount, lastOpened}`. Removing a book also releases its file permission and cache.
+- Only settings are included in Android backup; the library is a reading history, and its file permissions would not survive a restore.
 - A damaged settings or library file starts over with defaults rather than failing on every start.
 - **Parsed-book cache:** JSON of `Book` in the app cache directory, one file per URI, valid while parser version, file size and modification time match.
 

@@ -162,6 +162,19 @@ class EpubParserTest {
         EpubParser.parse(ByteArrayInputStream("%PDF-1.7 not a zip".toByteArray()))
     }
 
+    @Test(expected = BookFormatException::class)
+    fun `rejects a document that expands beyond the size limit`() {
+        val bytes = ByteArrayOutputStream()
+        ZipOutputStream(bytes).use { zip ->
+            zip.putNextEntry(ZipEntry("OEBPS/huge.xhtml"))
+            // Zeros compress to almost nothing, like a zip bomb.
+            val chunk = ByteArray(1024 * 1024)
+            repeat(65) { zip.write(chunk) }
+            zip.closeEntry()
+        }
+        EpubParser.parse(ByteArrayInputStream(bytes.toByteArray()))
+    }
+
     private fun parse(vararg files: Pair<String, String>): Book {
         val bytes = ByteArrayOutputStream()
         ZipOutputStream(bytes).use { zip ->
