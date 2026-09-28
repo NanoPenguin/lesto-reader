@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -47,11 +51,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.nanopenguin.pace.R
 import io.github.nanopenguin.pace.appContainer
 import io.github.nanopenguin.pace.book.BookError
+import io.github.nanopenguin.pace.settings.TextSize
 import io.github.nanopenguin.pace.ui.BackButton
 import io.github.nanopenguin.pace.ui.theme.PaceTheme
 import kotlin.math.abs
-
-private val WordFontSize = 40.sp
 
 /** Duration of the page's sideways glide to the current word. */
 private const val PAN_MILLIS = 200
@@ -68,7 +71,7 @@ fun ReaderScreen(
     val container = LocalContext.current.appContainer
     val viewModel =
         viewModel(viewModelStoreOwner = rememberViewModelStoreOwner()) {
-            ReaderViewModel(uri, container.books, container.library, container.scope)
+            ReaderViewModel(uri, container.books, container.library, container.settings, container.scope)
         }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -85,6 +88,7 @@ fun ReaderScreen(
         onSlower = viewModel::slower,
         onFaster = viewModel::faster,
         onShowContextChange = viewModel::setShowContext,
+        onRemove = { viewModel.removeFromLibrary(onRemoved = onClose) },
         onClose = onClose,
     )
 }
@@ -101,11 +105,12 @@ private fun ReaderScreen(
     onSlower: () -> Unit,
     onFaster: () -> Unit,
     onShowContextChange: (Boolean) -> Unit,
+    onRemove: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     state.error?.let {
-        ReaderError(it, onClose)
+        ReaderError(it, if (state.canRemove) onRemove else null, onClose)
         return
     }
     if (state.isLoading) {
@@ -121,8 +126,9 @@ private fun ReaderScreen(
     }
 
     var showChapters by rememberSaveable { mutableStateOf(false) }
-    val wordStyle = MaterialTheme.typography.displaySmall.copy(fontSize = WordFontSize)
-    val lineHeight = with(LocalDensity.current) { WordFontSize.toPx() } * LINE_SPACING
+    val wordSize = state.textSize.wordSize
+    val wordStyle = MaterialTheme.typography.displaySmall.copy(fontSize = wordSize)
+    val lineHeight = with(LocalDensity.current) { wordSize.toPx() } * LINE_SPACING
     val measurer = rememberTextMeasurer(cacheSize = 32)
     val scroll = remember { PageScroll() }
 
@@ -162,10 +168,18 @@ private fun ReaderScreen(
         val currentOnPause by rememberUpdatedState(onPause)
         val currentNavigator by rememberUpdatedState(navigator)
 
+        val playbackLabel = stringResource(if (state.isPlaying) R.string.reader_pause else R.string.reader_play)
         Box(
             modifier =
             Modifier
                 .fillMaxSize()
+                // Tapping anywhere plays or pauses; screen readers need that as an action.
+                .semantics {
+                    onClick(label = playbackLabel) {
+                        currentOnTap()
+                        true
+                    }
+                }
                 .readerGestures(
                     haptics = LocalHapticFeedback.current,
                     scroll = scroll,
@@ -250,24 +264,36 @@ private fun ReaderScreen(
 @Composable
 private fun ReaderError(
     error: BookError,
+    /** Removes the book from the library; null if it is not in it. */
+    onRemove: (() -> Unit)?,
     onClose: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
         BackButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart))
-        Text(
-            text =
-            stringResource(
-                when (error) {
-                    BookError.Missing -> R.string.reader_error_missing
-                    BookError.Unreadable -> R.string.reader_error_unreadable
-                    BookError.NoText -> R.string.reader_error_no_text
-                },
-            ),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
-        )
+        ) {
+            Text(
+                text =
+                stringResource(
+                    when (error) {
+                        BookError.Missing -> R.string.reader_error_missing
+                        BookError.NoAccess -> R.string.reader_error_no_access
+                        BookError.Unreadable -> R.string.reader_error_unreadable
+                        BookError.NoText -> R.string.reader_error_no_text
+                    },
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            if (onRemove != null) {
+                OutlinedButton(onClick = onRemove, modifier = Modifier.padding(top = 24.dp)) {
+                    Text(stringResource(R.string.home_remove))
+                }
+            }
+        }
     }
 }
 
@@ -296,6 +322,7 @@ private fun ReaderScreenPreview() {
                 isLoading = false,
                 loadingProgress = null,
                 error = null,
+                canRemove = false,
                 bookTitle = "Alice’s Adventures in Wonderland",
                 frame = Frame("considering", isHeading = false, Pause.None, blockIndex = 0),
                 wordsBefore = emptyList(),
@@ -319,6 +346,7 @@ private fun ReaderScreenPreview() {
                 minutesLeftInSection = 3,
                 isPlaying = false,
                 wordsPerMinute = 300,
+                textSize = TextSize.Medium,
                 showContext = false,
             ),
             onTogglePlayback = {},
@@ -329,6 +357,7 @@ private fun ReaderScreenPreview() {
             onSlower = {},
             onFaster = {},
             onShowContextChange = {},
+            onRemove = {},
             onClose = {},
         )
     }

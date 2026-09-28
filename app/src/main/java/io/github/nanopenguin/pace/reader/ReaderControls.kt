@@ -21,10 +21,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.nanopenguin.pace.R
+import io.github.nanopenguin.pace.ui.SpeedControl
 import kotlin.math.roundToInt
 
 /**
@@ -81,7 +84,9 @@ private fun Position(
     val percent = (state.bookProgress * 100).roundToInt()
 
     Column(modifier = modifier) {
+        val sliderLabel = stringResource(R.string.reader_position)
         Slider(
+            modifier = Modifier.semantics { contentDescription = sliderLabel },
             value = state.position.toFloat(),
             onValueChange = { onSeek(it.roundToInt()) },
             valueRange = state.section.first.toFloat()..maxOf(state.section.last, state.section.first + 1).toFloat(),
@@ -103,34 +108,7 @@ private fun Position(
                 text = stringResource(R.string.reader_minutes_left, state.minutesLeftInSection),
                 style = MaterialTheme.typography.labelMedium,
                 color = muted,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SpeedControl(
-    wordsPerMinute: Int,
-    onSlower: () -> Unit,
-    onFaster: () -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onSlower) {
-            Icon(
-                painter = painterResource(R.drawable.ic_remove),
-                contentDescription = stringResource(R.string.reader_slower),
-            )
-        }
-        Text(
-            text = stringResource(R.string.reader_words_per_minute, wordsPerMinute),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(min = 88.dp),
-        )
-        IconButton(onClick = onFaster) {
-            Icon(
-                painter = painterResource(R.drawable.ic_add),
-                contentDescription = stringResource(R.string.reader_faster),
+                modifier = Modifier.padding(start = 12.dp),
             )
         }
     }

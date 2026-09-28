@@ -9,7 +9,7 @@ internal val CardLight = Color(0xFFFFFFFF)
 internal val InkLight = Color(0xFF1C1B1A)
 internal val InkMutedLight = Color(0xFF6E6B66)
 internal val LineLight = Color(0xFFE3E1DC)
-internal val AccentLight = Color(0xFFD6452B)
+internal val AccentLight = Color(0xFFCF4128)
 
 internal val PaperDark = Color(0xFF121212)
 internal val CardDark = Color(0xFF1D1D1D)

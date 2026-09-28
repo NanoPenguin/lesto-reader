@@ -16,8 +16,14 @@ import java.io.FileNotFoundException
 private const val PARSER_VERSION = 1
 
 enum class BookError {
-    /** The file was moved or deleted, or the app lost permission to read it. */
+    /** The file was moved or deleted. */
     Missing,
+
+    /**
+     * The app may no longer read the file. Its permission may have been revoked, or the file
+     * deleted: some providers drop the permission of deleted files, so the two look alike.
+     */
+    NoAccess,
 
     /** The file is not a book this app can read, or it is damaged. */
     Unreadable,
@@ -70,7 +76,7 @@ class BookRepository(
             } catch (exception: FileNotFoundException) {
                 throw BookException(BookError.Missing, exception)
             } catch (exception: SecurityException) {
-                throw BookException(BookError.Missing, exception)
+                throw BookException(accessError(uri), exception)
             } catch (exception: Exception) {
                 // Damaged files can make parsers fail in unexpected ways; that must not crash the app.
                 throw BookException(BookError.Unreadable, exception)
@@ -83,6 +89,15 @@ class BookRepository(
         val named = if (book.title.isBlank()) book.copy(title = file.name.substringBeforeLast('.')) else book
         runCatching { cache.write(uri.toString(), source, named) }
         named
+    }
+
+    /**
+     * Why reading [uri] was refused. Providers also refuse files that were deleted, so if the app
+     * still holds its permission, the file is gone.
+     */
+    private fun accessError(uri: Uri): BookError {
+        val hasPermission = resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
+        return if (hasPermission) BookError.Missing else BookError.NoAccess
     }
 
     private fun parse(
@@ -121,7 +136,7 @@ class BookRepository(
                 return FileInfo(name.orEmpty(), long(OpenableColumns.SIZE), long(DocumentsContract.Document.COLUMN_LAST_MODIFIED))
             }
         } catch (exception: SecurityException) {
-            throw BookException(BookError.Missing, exception)
+            throw BookException(accessError(uri), exception)
         } catch (exception: IllegalArgumentException) {
             throw BookException(BookError.Missing, exception)
         }

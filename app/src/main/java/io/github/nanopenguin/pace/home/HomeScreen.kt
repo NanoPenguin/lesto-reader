@@ -162,7 +162,14 @@ private fun BookMenu(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        content(Modifier.combinedClickable(onClick = { onOpen(entry) }, onLongClick = { showMenu = true }))
+        content(
+            Modifier.combinedClickable(
+                onClickLabel = stringResource(R.string.home_open_label),
+                onLongClickLabel = stringResource(R.string.home_remove),
+                onLongClick = { showMenu = true },
+                onClick = { onOpen(entry) },
+            ),
+        )
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.home_remove)) },

@@ -41,10 +41,10 @@ Milestones are done in order. Each ends with a building, testable app.
 - [x] Verify on a device: papers, a dissertation, a 150 MB report, a designed book, encrypted and text-less files
 
 ## M4 — Settings and polish
-- [ ] Settings screen and persistence
-- [ ] Error states: missing file, lost permission, corrupt book
-- [ ] Accessibility: TalkBack labels, font scaling, contrast
-- [ ] App icon, APK size check
+- [x] Settings screen and persistence
+- [x] Error states: missing file, lost permission, corrupt book
+- [x] Accessibility: TalkBack labels, font scaling, contrast
+- [x] App icon, APK size check (release APK 3.5 MB)
 
 ## M5 — Release 1.0
 - [ ] Test on a range of real books and devices

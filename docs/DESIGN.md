@@ -32,17 +32,20 @@ Out (for now): OCR of scanned PDFs, cloud sync, bookmarks, notes, statistics, co
   - On release, the sheet glides so that the highlighted word sits on the focal point, and its focal letter is marked.
 - Paused controls: chapter title (opens the chapter list), a slider over the current chapter (the whole book if it has no headings), "Chapter 3 of 24 · 38%", minutes left in the chapter, speed −/+ (steps of 25 wpm), context-words toggle, close.
 - Screen stays on while playing. Playback pauses when the app leaves the foreground.
+- A book that cannot be opened says why: moved or deleted, no longer accessible (some providers drop the access of deleted files, so this message names both), not a readable book, or no text. If it is in the library, it can be removed from there.
 
 **Settings**
 - Theme: System / Light / Dark.
-- Text size: Small / Medium / Large.
+- Text size of the word being read: Small / Medium / Large (32 / 40 / 48 sp).
 - Show context words (same toggle as in the reader).
 - Reading speed (same value as in the reader).
 - About: version, license, source link, third-party licenses.
 
 ### Visual language
 
-Monochrome surfaces, generous whitespace, one accent colour, and one typeface: Atkinson Hyperlegible Next, bundled, chosen for letter distinctness at speed. The accent is used only for the focal letter and primary actions.
+Monochrome surfaces, generous whitespace, one accent colour, and one typeface: Atkinson Hyperlegible Next, bundled, chosen for letter distinctness at speed. The accent is used only for the focal letter and primary actions. The app icon is the focal point: an accent "o" between the two focal guides.
+
+Text meets WCAG AA contrast, except the deliberately dimmed context words and neighbouring lines. Every action is reachable with TalkBack, including play / pause, and layouts hold up at the largest font scale.
 
 ## Technical design
 
@@ -97,8 +100,9 @@ Uses PdfBox-Android to extract upright text line by line, with font sizes and po
 ### Storage
 
 - **Files:** Storage Access Framework with persistable URI permissions. No storage permission.
-- **Settings:** DataStore (Preferences).
+- **Settings:** DataStore holding JSON (kotlinx.serialization) of `{theme, textSize, showContext, wordsPerMinute}`; the reader reads and saves speed and context words there.
 - **Library:** DataStore holding a JSON list (kotlinx.serialization) of `{uri, title, author, position, frameCount, lastOpened}`. Removing a book also releases its file permission and cache.
+- A damaged settings or library file starts over with defaults rather than failing on every start.
 - **Parsed-book cache:** JSON of `Book` in the app cache directory, one file per URI, valid while parser version, file size and modification time match.
 
 ### Dependencies
@@ -107,7 +111,7 @@ Uses PdfBox-Android to extract upright text line by line, with font sizes and po
 |---|---|
 | AndroidX Compose, Material 3, Activity, Lifecycle | UI |
 | AndroidX DataStore | settings and library |
-| kotlinx.serialization | library and cache format |
+| kotlinx.serialization | settings, library and cache format |
 | Jsoup | tolerant (X)HTML parsing for EPUB |
 | PdfBox-Android | PDF text extraction with font information (Apache-2.0) |
 

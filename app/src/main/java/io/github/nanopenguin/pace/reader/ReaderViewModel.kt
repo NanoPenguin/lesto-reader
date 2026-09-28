@@ -7,6 +7,11 @@ import io.github.nanopenguin.pace.book.BookError
 import io.github.nanopenguin.pace.book.BookException
 import io.github.nanopenguin.pace.book.BookRepository
 import io.github.nanopenguin.pace.library.LibraryStore
+import io.github.nanopenguin.pace.settings.DEFAULT_WORDS_PER_MINUTE
+import io.github.nanopenguin.pace.settings.SPEED_STEP
+import io.github.nanopenguin.pace.settings.SettingsStore
+import io.github.nanopenguin.pace.settings.SpeedRange
+import io.github.nanopenguin.pace.settings.TextSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,14 +19,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
-
-private const val DEFAULT_WORDS_PER_MINUTE = 300
-private const val SPEED_STEP = 25
-private val SpeedRange = 100..1000
 
 /** How many neighbouring words are offered on each side; the screen shows as many as fit. */
 private const val CONTEXT_WORD_COUNT = 8
@@ -41,6 +43,8 @@ data class ReaderUiState(
     val loadingProgress: Float?,
     /** Why the book could not be opened, if it could not. */
     val error: BookError?,
+    /** Whether the book that could not be opened is in the library, and can be removed from it. */
+    val canRemove: Boolean,
     val bookTitle: String,
     /** The frame on screen, or null if the book has no text. */
     val frame: Frame?,
@@ -59,13 +63,18 @@ data class ReaderUiState(
     val isPlaying: Boolean,
     val wordsPerMinute: Int,
     val showContext: Boolean,
+    val textSize: TextSize,
 )
 
-/** Plays the book at [uri] and keeps its reading position in the [library]. */
+/**
+ * Plays the book at [uri] and keeps its reading position in the [library]. Speed and context words
+ * start from the [settings], and changes to them are saved there.
+ */
 class ReaderViewModel(
     private val uri: Uri,
     private val books: BookRepository,
     private val library: LibraryStore,
+    private val settings: SettingsStore,
     /** Outlives this view model, so the last position is saved even as the reader closes. */
     private val appScope: CoroutineScope,
 ) : ViewModel() {
@@ -74,12 +83,14 @@ class ReaderViewModel(
     /** Written by the parser's thread. */
     @Volatile private var loadingProgress: Float? = null
     private var error: BookError? = null
+    private var canRemove = false
     private var bookTitle = ""
     private var text = RsvpText(emptyList(), emptyList())
     private var position = 0
     private var savedPosition = 0
     private var wordsPerMinute = DEFAULT_WORDS_PER_MINUTE
     private var showContext = false
+    private var textSize = TextSize.Medium
     private var playback: Job? = null
     private var pendingSave: Job? = null
 
@@ -91,6 +102,11 @@ class ReaderViewModel(
     }
 
     private suspend fun load() {
+        settings.current().let {
+            wordsPerMinute = it.wordsPerMinute.coerceIn(SpeedRange)
+            showContext = it.showContext
+            textSize = it.textSize
+        }
         try {
             val book =
                 books.load(uri) { progress ->
@@ -103,6 +119,7 @@ class ReaderViewModel(
             savedPosition = position
         } catch (exception: BookException) {
             error = exception.error
+            canRemove = library.entries.first().any { it.uri == uri.toString() }
         }
         isLoading = false
         publish()
@@ -113,6 +130,15 @@ class ReaderViewModel(
             val last = position
             appScope.launch { library.savePosition(uri.toString(), last) }
         }
+    }
+
+    /** Removes the book that could not be opened from the library, then calls [onRemoved]. */
+    fun removeFromLibrary(onRemoved: () -> Unit) {
+        appScope.launch {
+            library.remove(uri.toString())
+            books.forget(uri)
+        }
+        onRemoved()
     }
 
     fun togglePlayback() {
@@ -142,11 +168,14 @@ class ReaderViewModel(
     fun setShowContext(show: Boolean) {
         showContext = show
         publish()
+        appScope.launch { settings.update { it.copy(showContext = show) } }
     }
 
     private fun setSpeed(value: Int) {
         wordsPerMinute = value.coerceIn(SpeedRange)
         publish()
+        val saved = wordsPerMinute
+        appScope.launch { settings.update { it.copy(wordsPerMinute = saved) } }
     }
 
     private fun play() {
@@ -193,6 +222,7 @@ class ReaderViewModel(
             isLoading = isLoading,
             loadingProgress = loadingProgress,
             error = error,
+            canRemove = canRemove,
             bookTitle = bookTitle,
             frame = frame,
             wordsBefore = if (frame != null && showContext) text.wordsBefore(position, CONTEXT_WORD_COUNT) else emptyList(),
@@ -207,6 +237,7 @@ class ReaderViewModel(
             isPlaying = playback != null,
             wordsPerMinute = wordsPerMinute,
             showContext = showContext,
+            textSize = textSize,
         )
     }
 
