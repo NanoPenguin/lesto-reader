@@ -63,9 +63,10 @@ fun SentenceLines(
         val centerY = size.height / 2
         val textHeight = geometry.layout(current).size.height
         val scrollX = scroll.scrollX.value
+        val offsets = geometry.lineOffsets(page)
 
         page.lines.forEachIndexed { index, line ->
-            val top = centerY + scroll.offsetY + (index - page.currentLine) * geometry.lineHeight - textHeight / 2
+            val top = centerY + scroll.offsetY + offsets[index] - textHeight / 2
             if (top + textHeight < 0 || top > size.height) return@forEachIndexed
 
             val topLeft = Offset(geometry.lineX(line, scrollX), top)

@@ -17,46 +17,55 @@ import kotlin.math.abs
 /** Drag distance per word step. */
 private val WordStep = 24.dp
 
+/** How far the page can be dragged past the first or last line. */
+private val EdgeOverscroll = 32.dp
+
 /**
  * Tap to play or pause. Drag sideways to move word by word. Drag up or down to scroll the page:
- * the lines follow the finger, move one line per [lineHeight], and settle when released. Like
- * scrolling a page, dragging right or down pulls earlier text into view.
+ * the lines follow the finger, the current line changes once dragged the distance to the next,
+ * and the lines settle when released. Like scrolling a page, dragging right or down pulls earlier
+ * text into view.
  *
- * [onStepWords] moves within the current line and [onStepLine] one line up (-1) or down (1); both
- * return false when there is nowhere to go.
+ * [onStepWords] moves within the current line and returns false when it cannot. [lineDistance]
+ * gives the distance to the line above (-1) or below (1), or null if there is none, and
+ * [onStepLine] moves there.
  * The callbacks are captured once, so they must not change between recompositions.
  */
 fun Modifier.readerGestures(
     haptics: HapticFeedback,
-    lineHeight: Float,
     scroll: PageScroll,
     onTap: () -> Unit,
     onDragStart: () -> Unit,
     onStepWords: (Int) -> Boolean,
-    onStepLine: (Int) -> Boolean,
+    lineDistance: (Int) -> Float?,
+    onStepLine: (Int) -> Unit,
 ): Modifier = pointerInput(Unit) { detectTapGestures(onTap = { onTap() }) }
-    .pointerInput(lineHeight) {
+    .pointerInput(Unit) {
         coroutineScope {
             var axis: Orientation? = null
             var horizontalDistance = 0f
             var settling: Job? = null
 
-            // Moves whole lines while the drag covers at least [threshold] of one.
-            fun stepLines(threshold: Float) {
-                while (abs(scroll.offsetY) >= threshold) {
+            // Moves to the next line while the drag covers at least [fraction] of the distance to it.
+            fun stepLines(fraction: Float) {
+                while (scroll.offsetY != 0f) {
                     val direction = if (scroll.offsetY > 0) -1 else 1
-                    if (!onStepLine(direction)) {
-                        scroll.offsetY = scroll.offsetY.coerceIn(-lineHeight / 2, lineHeight / 2)
+                    val distance = lineDistance(direction)
+                    if (distance == null) {
+                        val overscroll = EdgeOverscroll.toPx()
+                        scroll.offsetY = scroll.offsetY.coerceIn(-overscroll, overscroll)
                         return
                     }
-                    scroll.offsetY += direction * lineHeight
+                    if (abs(scroll.offsetY) < distance * fraction) return
+                    onStepLine(direction)
+                    scroll.offsetY += direction * distance
                     haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                 }
             }
 
             fun settle() {
                 if (axis != Orientation.Vertical) return
-                stepLines(threshold = lineHeight / 2)
+                stepLines(fraction = 0.5f)
                 val from = scroll.offsetY
                 settling =
                     launch {
@@ -88,7 +97,7 @@ fun Modifier.readerGestures(
 
                 if (dragAxis == Orientation.Vertical) {
                     scroll.offsetY += drag.y
-                    stepLines(threshold = lineHeight)
+                    stepLines(fraction = 1f)
                 } else {
                     horizontalDistance += drag.x
                     val stepSize = WordStep.toPx()

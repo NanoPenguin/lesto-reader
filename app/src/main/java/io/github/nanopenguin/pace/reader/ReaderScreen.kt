@@ -123,18 +123,25 @@ private fun ReaderScreen(
             }
         }
 
+        // Distance to the line above (-1) or below (1), if there is one.
+        val lineDistance = { direction: Int ->
+            currentPage()?.let { page ->
+                geometry.lineOffsets(page).getOrNull(page.currentLine + direction)?.let(::abs)
+            }
+        }
+
         // Moves to the word under the focal point on the line above or below.
         val stepLine = { direction: Int ->
             val current = currentPage()
             val line = current?.lines?.getOrNull(current.currentLine + direction)
             if (line != null) onSeek(line.firstFrame + geometry.wordAt(line, scroll.scrollX.value))
-            line != null
         }
 
         // The gesture detector lives across recompositions, so it reads the latest callbacks.
         val currentOnTap by rememberUpdatedState(onTogglePlayback)
         val currentOnPause by rememberUpdatedState(onPause)
         val currentOnStepWords by rememberUpdatedState(onStepWords)
+        val currentLineDistance by rememberUpdatedState(lineDistance)
         val currentStepLine by rememberUpdatedState(stepLine)
 
         Box(
@@ -143,11 +150,11 @@ private fun ReaderScreen(
                 .fillMaxSize()
                 .readerGestures(
                     haptics = LocalHapticFeedback.current,
-                    lineHeight = lineHeight,
                     scroll = scroll,
                     onTap = { currentOnTap() },
                     onDragStart = { currentOnPause() },
                     onStepWords = { currentOnStepWords(it) },
+                    lineDistance = { currentLineDistance(it) },
                     onStepLine = { currentStepLine(it) },
                 ),
         ) {

@@ -35,4 +35,20 @@ data class TextPage(
     val lines: List<PageLine>,
     val currentLine: Int,
     val currentWord: Int,
-)
+) {
+    /**
+     * Vertical position of each line relative to the current one: [lineHeight] apart, with
+     * [headingGap] extra above every heading except one that opens the book.
+     */
+    fun lineOffsets(
+        lineHeight: Float,
+        headingGap: Float,
+    ): FloatArray {
+        fun spaceAbove(line: PageLine) = lineHeight + if (line.isHeading && line.firstFrame > 0) headingGap else 0f
+
+        val offsets = FloatArray(lines.size)
+        for (i in currentLine + 1..lines.lastIndex) offsets[i] = offsets[i - 1] + spaceAbove(lines[i])
+        for (i in currentLine - 1 downTo 0) offsets[i] = offsets[i + 1] - spaceAbove(lines[i + 1])
+        return offsets
+    }
+}
