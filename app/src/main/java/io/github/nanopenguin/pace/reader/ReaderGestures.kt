@@ -22,7 +22,8 @@ private val WordStep = 24.dp
  * the lines follow the finger, move one line per [lineHeight], and settle when released. Like
  * scrolling a page, dragging right or down pulls earlier text into view.
  *
- * [onStepLine] moves one line up (-1) or down (1) and returns false at the start or end of the book.
+ * [onStepWords] moves within the current line and [onStepLine] one line up (-1) or down (1); both
+ * return false when there is nowhere to go.
  * The callbacks are captured once, so they must not change between recompositions.
  */
 fun Modifier.readerGestures(
@@ -31,7 +32,7 @@ fun Modifier.readerGestures(
     scroll: PageScroll,
     onTap: () -> Unit,
     onDragStart: () -> Unit,
-    onStepWords: (Int) -> Unit,
+    onStepWords: (Int) -> Boolean,
     onStepLine: (Int) -> Boolean,
 ): Modifier = pointerInput(Unit) { detectTapGestures(onTap = { onTap() }) }
     .pointerInput(lineHeight) {
@@ -94,8 +95,7 @@ fun Modifier.readerGestures(
                     val steps = (horizontalDistance / stepSize).toInt()
                     if (steps != 0) {
                         horizontalDistance -= steps * stepSize
-                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        onStepWords(-steps)
+                        if (onStepWords(-steps)) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     }
                 }
             }

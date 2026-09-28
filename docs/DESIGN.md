@@ -29,7 +29,7 @@ Out (for now): OCR of scanned PDFs, cloud sync, bookmarks, notes, statistics, co
 - Tap: play / pause. Swiping pauses playback.
 - Paused: the text becomes a page with one sentence per line. The current word sits at the focal point; neighbouring sentences are dimmed above and below, headings in semi-bold as chapter separators. All lines start at the same x, like a page panned sideways; a line too short to reach the focal point is right-aligned so its last word sits there.
   - Swipe up / down: the lines follow the finger. You land on the word under the focal point, one line per line height. The page does not pan while scrolling; it glides to the landed word on release, and the focal letter is only marked once settled.
-  - Swipe sideways: steps through words, panning the page. Like scrolling, dragging right or down goes back.
+  - Swipe sideways: steps through the words of the current sentence, panning the page; it stops at the first and last word. Like scrolling, dragging right or down goes back.
 - Paused controls: chapter title (opens the chapter list), a slider over the current chapter (the whole book if it has no headings), "Chapter 3 of 24 · 38%", minutes left in the chapter, speed −/+ (steps of 25 wpm), context-words toggle, close.
 - Screen stays on while playing. Playback pauses when the app leaves the foreground.
 

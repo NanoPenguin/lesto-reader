@@ -79,7 +79,7 @@ private fun ReaderScreen(
     onTogglePlayback: () -> Unit,
     onSeek: (Int) -> Unit,
     onPause: () -> Unit,
-    onStepWords: (Int) -> Unit,
+    onStepWords: (Int) -> Boolean,
     /** The latest page, read directly so that quick successive line steps never see a stale one. */
     currentPage: () -> TextPage?,
     onJumpToChapter: (Int) -> Unit,
@@ -269,7 +269,7 @@ private fun ReaderScreenPreview() {
             onTogglePlayback = {},
             onSeek = {},
             onPause = {},
-            onStepWords = {},
+            onStepWords = { false },
             currentPage = { null },
             onJumpToChapter = {},
             onSlower = {},

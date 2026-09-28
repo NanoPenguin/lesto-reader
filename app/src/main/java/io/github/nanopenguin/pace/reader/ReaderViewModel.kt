@@ -72,10 +72,18 @@ class ReaderViewModel(
         publish()
     }
 
-    /** Moves [count] words forward, or back if negative. Pauses playback. */
-    fun stepWords(count: Int) {
+    /**
+     * Moves [count] words forward, or back if negative, without leaving the current line: changing
+     * sentence is done by scrolling vertically. Pauses playback. Returns whether the position moved.
+     */
+    fun stepWords(count: Int): Boolean {
         pause()
-        seekTo(position + count)
+        if (text.frames.isEmpty()) return false
+        val line = text.lineAt(position, MAX_LINE_WORDS)
+        val target = (position + count).coerceIn(line)
+        if (target == position) return false
+        seekTo(target)
+        return true
     }
 
     fun jumpToChapter(chapterIndex: Int) {
