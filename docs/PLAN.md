@@ -35,9 +35,10 @@ Milestones are done in order. Each ends with a building, testable app.
 - [x] Verify on a device: picker, loading, resume after restart, removing, error messages
 
 ## M3 — PDF
-- [ ] PdfBox-Android text extraction with font sizes
-- [ ] Heading detection, header/footer and page-number removal, de-hyphenation
-- [ ] "No text found" handling; progress indicator on first parse
+- [x] PdfBox-Android text extraction with font sizes
+- [x] Heading detection, header/footer and page-number removal, de-hyphenation
+- [x] "No text found" handling; progress indicator on first parse
+- [x] Verify on a device: papers, a dissertation, a 150 MB report, a designed book, encrypted and text-less files
 
 ## M4 — Settings and polish
 - [ ] Settings screen and persistence

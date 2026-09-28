@@ -27,6 +27,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            // Data for post-quantum algorithms in BouncyCastle, which PdfBox only uses to decrypt PDFs.
+            excludes += "org/bouncycastle/pqc/**"
+        }
+    }
 }
 
 dependencies {
@@ -39,6 +46,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore)
     implementation(libs.jsoup)
+    implementation(libs.pdfbox.android)
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
@@ -36,6 +37,8 @@ private const val SAVE_DELAY_MILLIS = 1000L
 
 data class ReaderUiState(
     val isLoading: Boolean,
+    /** How far a first parse has come, from 0 to 1, when that is known. */
+    val loadingProgress: Float?,
     /** Why the book could not be opened, if it could not. */
     val error: BookError?,
     val bookTitle: String,
@@ -67,6 +70,9 @@ class ReaderViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
     private var isLoading = true
+
+    /** Written by the parser's thread. */
+    @Volatile private var loadingProgress: Float? = null
     private var error: BookError? = null
     private var bookTitle = ""
     private var text = RsvpText(emptyList(), emptyList())
@@ -86,7 +92,11 @@ class ReaderViewModel(
 
     private suspend fun load() {
         try {
-            val book = books.load(uri)
+            val book =
+                books.load(uri) { progress ->
+                    loadingProgress = progress
+                    _uiState.update { it.copy(loadingProgress = progress) }
+                }
             text = withContext(Dispatchers.Default) { book.toRsvpText() }
             bookTitle = book.title
             position = library.open(uri.toString(), book.title, book.author, text.frames.size)
@@ -195,6 +205,7 @@ class ReaderViewModel(
             if (frame != null) text.units(position..section.last) * millisPerUnit(wordsPerMinute) / 1000 else 0.0
         return ReaderUiState(
             isLoading = isLoading,
+            loadingProgress = loadingProgress,
             error = error,
             bookTitle = bookTitle,
             frame = frame,

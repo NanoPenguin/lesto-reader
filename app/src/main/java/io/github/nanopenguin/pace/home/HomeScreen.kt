@@ -49,7 +49,7 @@ import io.github.nanopenguin.pace.ui.theme.PaceTheme
 import kotlin.math.roundToInt
 
 /** File types offered in the system file picker. */
-private val BookTypes = arrayOf("application/epub+zip")
+private val BookTypes = arrayOf("application/epub+zip", "application/pdf")
 
 @Composable
 fun HomeScreen(

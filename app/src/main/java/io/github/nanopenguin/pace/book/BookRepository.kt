@@ -5,9 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
+import java.io.File
 import java.io.FileNotFoundException
 
 /** Bump when parsing changes, so that cached books are parsed again. */
@@ -20,7 +22,7 @@ enum class BookError {
     /** The file is not a book this app can read, or it is damaged. */
     Unreadable,
 
-    /** The book contains no text, e.g. only images. */
+    /** The book contains no text, e.g. only images or a scanned PDF. */
     NoText,
 }
 
@@ -47,8 +49,14 @@ class BookRepository(
         cache.delete(uri.toString())
     }
 
-    /** Loads the book at [uri], from the cache if the file has not changed since it was parsed. */
-    suspend fun load(uri: Uri): Book = withContext(Dispatchers.IO) {
+    /**
+     * Loads the book at [uri], from the cache if the file has not changed since it was parsed.
+     * Parsing a PDF reports its progress from 0 to 1 to [onProgress], on a background thread.
+     */
+    suspend fun load(
+        uri: Uri,
+        onProgress: (Float) -> Unit = {},
+    ): Book = withContext(Dispatchers.IO) {
         val file = fileInfo(uri)
         val source = "$PARSER_VERSION:${file.size}:${file.lastModified}"
         cache.read(uri.toString(), source)?.let { return@withContext it }
@@ -56,7 +64,7 @@ class BookRepository(
         val book =
             try {
                 val stream = resolver.openInputStream(uri) ?: throw BookException(BookError.Missing)
-                stream.buffered().use { parse(it) }
+                stream.buffered().use { parse(it, onProgress) }
             } catch (exception: BookException) {
                 throw exception
             } catch (exception: FileNotFoundException) {
@@ -66,6 +74,9 @@ class BookRepository(
             } catch (exception: Exception) {
                 // Damaged files can make parsers fail in unexpected ways; that must not crash the app.
                 throw BookException(BookError.Unreadable, exception)
+            } catch (error: VirtualMachineError) {
+                // Huge or deeply nested PDFs can exhaust memory or the stack; what was allocated is garbage now.
+                throw BookException(BookError.Unreadable, error)
             }
         if (book.blocks.isEmpty()) throw BookException(BookError.NoText)
 
@@ -74,13 +85,22 @@ class BookRepository(
         named
     }
 
-    private fun parse(input: BufferedInputStream): Book {
-        input.mark(ZIP_SIGNATURE.size)
-        val header = ByteArray(ZIP_SIGNATURE.size)
+    private fun parse(
+        input: BufferedInputStream,
+        onProgress: (Float) -> Unit,
+    ): Book {
+        input.mark(SIGNATURE_SIZE)
+        val header = ByteArray(SIGNATURE_SIZE)
         val read = input.read(header)
         input.reset()
         return when {
-            read == header.size && header.contentEquals(ZIP_SIGNATURE) -> EpubParser.parse(input)
+            read == SIGNATURE_SIZE && header.contentEquals(ZIP_SIGNATURE) -> EpubParser.parse(input)
+
+            read == SIGNATURE_SIZE && header.contentEquals(PDF_SIGNATURE) -> {
+                if (!PDFBoxResourceLoader.isReady()) PDFBoxResourceLoader.init(context)
+                PdfParser.parse(input, File(context.cacheDir, "pdf"), onProgress)
+            }
+
             else -> throw BookFormatException("Unsupported file type")
         }
     }
@@ -110,5 +130,10 @@ class BookRepository(
     }
 }
 
+private const val SIGNATURE_SIZE = 4
+
 /** Every EPUB is a ZIP archive, which starts with these bytes. */
 private val ZIP_SIGNATURE = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
+
+/** "%PDF", the start of every PDF. */
+private val PDF_SIGNATURE = "%PDF".toByteArray()

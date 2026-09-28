@@ -73,11 +73,11 @@ Zip → `META-INF/container.xml` → OPF (metadata, manifest, spine) → each li
 
 ### PDF parsing
 
-Uses PdfBox-Android to extract text with font sizes, line by line.
-- Headings: short lines whose font size is clearly above the body median, plus titles from the PDF outline when present.
-- Removed: running headers/footers (lines repeated at the same position across pages) and bare page numbers.
-- Hyphenated line breaks are joined; paragraphs are split on larger vertical gaps.
-- A PDF without a text layer shows a clear "no text found" message.
+Uses PdfBox-Android to extract upright text line by line, with font sizes and positions; `PdfLayout` (pure Kotlin) infers the structure.
+- Headings: from the PDF outline when it has at least three entries, matched to the printed title nearest its destination, or inserted there. Otherwise, runs of up to three lines set clearly larger than the body size (the most common one), ranked by size. Using both would find most headings twice.
+- Removed: among the two top and bottom lines of each page, bare page numbers, lines repeated on three or more pages (digits ignored), and lines starting or ending with the printed page number.
+- Paragraphs are split on larger vertical gaps, first-line indents after a sentence end, and short lines ending a sentence; hyphenated line breaks are joined.
+- The first parse reports progress per page. A PDF without a text layer shows a clear "no text found" message; password-protected ones cannot be opened.
 
 ### RSVP engine (pure Kotlin, no Android)
 

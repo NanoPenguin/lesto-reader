@@ -108,7 +108,12 @@ private fun ReaderScreen(
     }
     if (state.isLoading) {
         Box(modifier = modifier.fillMaxSize()) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            val progress = state.loadingProgress
+            if (progress != null) {
+                CircularProgressIndicator(progress = { progress }, modifier = Modifier.align(Alignment.Center))
+            } else {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
         return
     }
@@ -297,6 +302,7 @@ private fun ReaderScreenPreview() {
             state =
             ReaderUiState(
                 isLoading = false,
+                loadingProgress = null,
                 error = null,
                 bookTitle = "Alice’s Adventures in Wonderland",
                 frame = Frame("considering", isHeading = false, Pause.None, blockIndex = 0),
