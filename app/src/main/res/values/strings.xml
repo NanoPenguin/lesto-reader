@@ -6,7 +6,13 @@
     <string name="home_open_book">Open book</string>
     <string name="home_settings">Settings</string>
 
-    <string name="reader_placeholder">Reader</string>
+    <string name="reader_tap_to_read">Tap to read</string>
+    <string name="reader_minutes_left">%1$d min left</string>
+    <string name="reader_previous_sentence">Back one sentence</string>
+    <string name="reader_slower">Slower</string>
+    <string name="reader_faster">Faster</string>
+    <string name="reader_words_per_minute">%1$d wpm</string>
+    <string name="reader_context">Context</string>
 
     <string name="settings_title">Settings</string>
 </resources>

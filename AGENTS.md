@@ -39,10 +39,10 @@ licenses/     Licenses of bundled third-party assets
 
 ## Conventions
 
-- Kotlin coding conventions, enforced by ktlint (`intellij_idea` style, matching Android Studio's formatter) via Spotless.
+- Kotlin coding conventions (constants in `SCREAMING_SNAKE_CASE`), enforced by ktlint (`intellij_idea` style, matching Android Studio's formatter) via Spotless.
 - One concept per file. Keep files short; split when a file stops fitting in one's head.
 - Icons are vector drawables in `res/drawable` (Material Symbols); no icon library.
-- Screens follow `XScreen` (stateless composable) + `XViewModel` (exposes one `StateFlow<XUiState>`).
+- Screens follow `XViewModel` (exposes one `StateFlow<XUiState>`) + `XScreen`: a public overload taking the ViewModel, delegating to a private stateless overload that previews use.
 - No business logic in composables. The RSVP engine and parsers must be unit-testable without an emulator.
 - Dependencies are wired by hand in `AppContainer`; no DI framework.
 - Comments explain *why*, not *what*. No commented-out code, no TODOs without an issue link.

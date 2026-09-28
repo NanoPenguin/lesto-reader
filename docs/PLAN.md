@@ -18,15 +18,16 @@ Milestones are done in order. Each ends with a building, testable app.
 - [x] README, LICENSE, `.gitignore`
 
 ## M1 — RSVP core (with built-in sample text)
-- [ ] `Book` model and engine: frames, ORP, timing, ramp-up
-- [ ] Unit tests for ORP and timing
-- [ ] Reader screen: focal-point word rendering, play/pause, paused overlay
-- [ ] Speed control and context-words toggle
+- [x] `Book` model and engine: frames, ORP, timing, ramp-up
+- [x] Unit tests for ORP, timing, frames and navigation
+- [x] Reader screen: focal-point word rendering, play/pause, paused overlay
+- [x] Speed control and context-words toggle
 
 *Goal: the reading experience feels right before any file handling exists.*
 
 ## M2 — EPUB and library
-- [ ] Open file via system picker, persist URI permission
+- [ ] Open file via system picker, persist URI permission; replace `SampleBook`
+- [ ] Reader ViewModel keyed per book (`viewModel(key = …)`)
 - [ ] EPUB parser incl. ToC-based heading detection, with tests
 - [ ] Parsed-book cache
 - [ ] Library store: recent books, reading positions, resume

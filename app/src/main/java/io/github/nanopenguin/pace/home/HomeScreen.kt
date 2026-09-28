@@ -30,10 +30,10 @@ fun HomeScreen(
 ) {
     Column(
         modifier =
-            modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .padding(24.dp),
+        modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .padding(24.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

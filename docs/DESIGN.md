@@ -77,17 +77,16 @@ Uses PdfBox-Android to extract text with font sizes, line by line.
 
 ### RSVP engine (pure Kotlin, no Android)
 
-- **Frames.** A paragraph becomes one frame per word (punctuation stays attached). A heading becomes one frame showing the whole heading; very long headings fall back to word frames in heading style.
+- **Frames.** A paragraph becomes one frame per word (punctuation stays attached). A heading becomes one frame showing the whole heading, centred, without a focal letter.
 - **Focal point (ORP).** The pivot letter index depends on word length: 1 → 0, 2–5 → 1, 6–9 → 2, 10–13 → 3, longer → 4. The pivot is drawn at a fixed horizontal position (slightly left of centre) in the accent colour.
-- **Timing.** Base duration `60 000 / wordsPerMinute` ms, multiplied by:
-  | Condition | Multiplier |
+- **Timing.** Measured in word-times of `60 000 / wordsPerMinute` ms. A word takes 1 (1.3 if longer than 8 letters), a heading 1 per word. Pauses add:
+  | After | Extra word-times |
   |---|---|
-  | Word longer than 8 characters | 1.3 |
-  | Ends with `,` `;` `:` | 1.5 |
-  | Ends a sentence | 2.0 |
-  | Ends a paragraph | 2.5 |
-  | Heading frame | 3.0 |
-  The first few words after pressing play ramp up from a slower speed.
+  | `,` `;` `:` `–` `—` | 0.5 |
+  | End of sentence | 1.0 |
+  | End of paragraph | 1.5 |
+  | Heading | 2.0 |
+  After pressing play, the first five frames ease in from half speed.
 - **Position.** The position is the frame index. It is stored together with a parser version; if the version changed, the position is restored proportionally.
 - **Context words.** When enabled, neighbouring words are laid out on the same line around the current word, dimmed and fading towards the edges.
 
