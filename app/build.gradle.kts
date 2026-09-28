@@ -24,6 +24,12 @@ android {
         }
     }
 
+    // An encrypted block only Google Play can read; F-Droid rejects APKs that contain it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     buildFeatures {
         compose = true
     }

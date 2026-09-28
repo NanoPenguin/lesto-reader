@@ -35,6 +35,8 @@ Requires the Android SDK and Java 25 (Android Studio includes both).
 ./gradlew assembleDebug
 ```
 
+`./gradlew assembleRelease` builds an unsigned release APK; sign it with your own key using `apksigner`.
+
 ## Contributing
 
 See [AGENTS.md](AGENTS.md) for conventions and [docs/DESIGN.md](docs/DESIGN.md) for scope.

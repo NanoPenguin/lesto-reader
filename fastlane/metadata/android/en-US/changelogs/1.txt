@@ -1,0 +1,6 @@
+First release.
+
+- Read EPUB and PDF books one word at a time
+- Chapters, a paused page view and optional context words
+- Reading speed, text size and theme settings
+- Remembers your place in every book
