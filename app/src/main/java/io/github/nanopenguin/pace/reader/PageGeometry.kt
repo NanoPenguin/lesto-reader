@@ -11,9 +11,8 @@ import kotlin.math.abs
 private const val HEADING_GAP = 0.8f
 
 /**
- * Horizontal layout of the paused page. All lines start at a shared `scrollX`, like a page that
- * is panned sideways, except lines that would end before the focal point: those are right-aligned
- * so that their last word sits on it.
+ * Layout of the paused page, which moves as one sheet: all lines start at a shared `scrollX`, and
+ * lie a fixed distance apart.
  */
 class PageGeometry(
     private val measurer: TextMeasurer,
@@ -45,24 +44,21 @@ class PageGeometry(
         word: Int,
     ): Float = layout(line).getBoundingBox(line.anchorChar(word)).center.x
 
-    /** Where [line] starts on screen. */
-    fun lineX(
-        line: PageLine,
-        scrollX: Float,
-    ): Float = maxOf(scrollX, focalX - anchorX(line, line.words.lastIndex))
-
     /** The `scrollX` that puts [word] of [line] on the focal point. */
     fun scrollXFor(
         line: PageLine,
         word: Int,
     ): Float = focalX - anchorX(line, word)
 
-    /** The word of [line] closest to the focal point at [scrollX]. */
+    /**
+     * The word of [line] closest to the focal point at [scrollX]. Beyond either end of the line,
+     * that is its first or last word.
+     */
     fun wordAt(
         line: PageLine,
         scrollX: Float,
     ): Int {
-        val x = focalX - lineX(line, scrollX)
+        val x = focalX - scrollX
         return line.words.indices.minBy { abs(anchorX(line, it) - x) }
     }
 }

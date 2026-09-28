@@ -34,4 +34,16 @@ class TextPageTest {
             )
         assertEquals(listOf(-20f, -10f, 0f, 15f, 25f), page.lineOffsets(lineHeight = 10f, headingGap = 5f).toList())
     }
+
+    @Test
+    fun `the nearest line is the one whose centre is closest to the focal point`() {
+        val page = TextPage(lines = (0..4).map { PageLine(listOf("x"), it, isHeading = false) }, currentLine = 2, currentWord = 0)
+        val offsets = floatArrayOf(-20f, -10f, 0f, 10f, 25f)
+
+        assertEquals(2, page.lineNearest(offsetY = 4f, offsets))
+        assertEquals(1, page.lineNearest(offsetY = 6f, offsets))
+        assertEquals(3, page.lineNearest(offsetY = -6f, offsets))
+        // Past the last line, the last line is still the nearest.
+        assertEquals(4, page.lineNearest(offsetY = -100f, offsets))
+    }
 }

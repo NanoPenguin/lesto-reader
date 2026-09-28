@@ -2,6 +2,7 @@ package io.github.nanopenguin.pace.reader
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -55,6 +56,9 @@ private val WordFontSize = 40.sp
 /** Duration of the page's sideways glide to the current word. */
 private const val PAN_MILLIS = 200
 
+/** How far the paused page can be dragged past its first or last line and word. */
+private val Overscroll = 32.dp
+
 /** Reads the book at [uri]. Its view model, and with it the book, lives as long as this screen. */
 @Composable
 fun ReaderScreen(
@@ -76,7 +80,6 @@ fun ReaderScreen(
         onTogglePlayback = viewModel::togglePlayback,
         onSeek = viewModel::seekTo,
         onPause = viewModel::pause,
-        onStepWords = viewModel::stepWords,
         currentPage = { viewModel.uiState.value.page },
         onJumpToChapter = viewModel::jumpToChapter,
         onSlower = viewModel::slower,
@@ -92,8 +95,7 @@ private fun ReaderScreen(
     onTogglePlayback: () -> Unit,
     onSeek: (Int) -> Unit,
     onPause: () -> Unit,
-    onStepWords: (Int) -> Boolean,
-    /** The latest page, read directly so that quick successive line steps never see a stale one. */
+    /** The latest page, read directly so that quick successive moves never see a stale one. */
     currentPage: () -> TextPage?,
     onJumpToChapter: (Int) -> Unit,
     onSlower: () -> Unit,
@@ -143,35 +145,22 @@ private fun ReaderScreen(
 
                 scroll.isScrolling -> Unit
 
-                !scroll.isPlaced || abs(targetScrollX - scroll.scrollX.value) > focalX -> {
-                    scroll.scrollX.snapTo(targetScrollX)
+                !scroll.isPlaced || abs(targetScrollX - scroll.scrollX) > focalX -> {
+                    scroll.scrollX = targetScrollX
                     scroll.isPlaced = true
                 }
 
-                else -> scroll.scrollX.animateTo(targetScrollX, tween(PAN_MILLIS))
+                else -> animate(scroll.scrollX, targetScrollX, animationSpec = tween(PAN_MILLIS)) { value, _ -> scroll.scrollX = value }
             }
         }
 
-        // Distance to the line above (-1) or below (1), if there is one.
-        val lineDistance = { direction: Int ->
-            currentPage()?.let { page ->
-                geometry.lineOffsets(page).getOrNull(page.currentLine + direction)?.let(::abs)
-            }
-        }
-
-        // Moves to the word under the focal point on the line above or below.
-        val stepLine = { direction: Int ->
-            val current = currentPage()
-            val line = current?.lines?.getOrNull(current.currentLine + direction)
-            if (line != null) onSeek(line.firstFrame + geometry.wordAt(line, scroll.scrollX.value))
-        }
+        val overscroll = with(LocalDensity.current) { Overscroll.toPx() }
+        val navigator = PageNavigator(geometry, scroll, currentPage, onSeek, overscroll)
 
         // The gesture detector lives across recompositions, so it reads the latest callbacks.
         val currentOnTap by rememberUpdatedState(onTogglePlayback)
         val currentOnPause by rememberUpdatedState(onPause)
-        val currentOnStepWords by rememberUpdatedState(onStepWords)
-        val currentLineDistance by rememberUpdatedState(lineDistance)
-        val currentStepLine by rememberUpdatedState(stepLine)
+        val currentNavigator by rememberUpdatedState(navigator)
 
         Box(
             modifier =
@@ -181,10 +170,12 @@ private fun ReaderScreen(
                     haptics = LocalHapticFeedback.current,
                     scroll = scroll,
                     onTap = { currentOnTap() },
-                    onDragStart = { currentOnPause() },
-                    onStepWords = { currentOnStepWords(it) },
-                    lineDistance = { currentLineDistance(it) },
-                    onStepLine = { currentStepLine(it) },
+                    onDragStart = {
+                        currentOnPause()
+                        currentNavigator.start()
+                    },
+                    onMove = { currentNavigator.move(it) },
+                    restingPlace = { currentNavigator.restingPlace() },
                 ),
         ) {
             val frame = state.frame
@@ -332,7 +323,6 @@ private fun ReaderScreenPreview() {
             onTogglePlayback = {},
             onSeek = {},
             onPause = {},
-            onStepWords = { false },
             currentPage = { null },
             onJumpToChapter = {},
             onSlower = {},

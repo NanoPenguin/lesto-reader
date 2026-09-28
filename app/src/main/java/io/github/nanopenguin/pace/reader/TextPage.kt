@@ -1,5 +1,7 @@
 package io.github.nanopenguin.pace.reader
 
+import kotlin.math.abs
+
 /** One line of the paused page: a sentence, or a heading. */
 data class PageLine(
     val words: List<String>,
@@ -51,4 +53,13 @@ data class TextPage(
         for (i in currentLine - 1 downTo 0) offsets[i] = offsets[i + 1] - spaceAbove(lines[i + 1])
         return offsets
     }
+
+    /**
+     * The line closest to the focal point when the current line sits [offsetY] below it, given
+     * the lines' [offsets] from [lineOffsets].
+     */
+    fun lineNearest(
+        offsetY: Float,
+        offsets: FloatArray,
+    ): Int = lines.indices.minBy { abs(offsetY + offsets[it]) }
 }

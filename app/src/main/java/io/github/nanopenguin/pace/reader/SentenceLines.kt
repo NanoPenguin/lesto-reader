@@ -62,14 +62,16 @@ fun SentenceLines(
     ) {
         val centerY = size.height / 2
         val textHeight = geometry.layout(current).size.height
-        val scrollX = scroll.scrollX.value
         val offsets = geometry.lineOffsets(page)
+        // While scrolling, this page may lag a step behind the gesture, so positions are measured from its anchor line.
+        val anchor = page.lines.indexOfFirst { it.firstFrame == scroll.anchorFrame }
+        val anchorY = if (scroll.isScrolling && anchor >= 0) scroll.offsetY - offsets[anchor] else 0f
 
         page.lines.forEachIndexed { index, line ->
-            val top = centerY + scroll.offsetY + offsets[index] - textHeight / 2
+            val top = centerY + anchorY + offsets[index] - textHeight / 2
             if (top + textHeight < 0 || top > size.height) return@forEachIndexed
 
-            val topLeft = Offset(geometry.lineX(line, scrollX), top)
+            val topLeft = Offset(scroll.scrollX, top)
             when {
                 index == page.currentLine -> drawText(geometry.layout(currentText, line.isHeading), topLeft = topLeft)
                 line.isHeading -> drawText(geometry.layout(line), ink.copy(alpha = HEADING_LINE_ALPHA), topLeft)
