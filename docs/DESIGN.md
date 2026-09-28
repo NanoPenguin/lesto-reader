@@ -26,8 +26,8 @@ Out (for now): OCR of scanned PDFs, cloud sync, bookmarks, notes, statistics, co
 
 **Reader**
 - Playing: only the word, its focal guides, and a hairline progress bar.
-- Tap anywhere to pause / play.
-- Paused overlay: chapter title, time left, seekable progress bar, speed −/+ (steps of 25 wpm), context-words toggle, "back one sentence", close.
+- Tap: play / pause. Swipe sideways: word by word. Swipe up / down: sentence by sentence. Like scrolling a page, dragging right or down goes back. Swiping pauses playback.
+- Paused: the current sentence appears below the word, current word highlighted. Controls: chapter title (opens the chapter list), a slider over the current chapter (the whole book if it has no headings), "Chapter 3 of 24 · 38%", minutes left in the chapter, speed −/+ (steps of 25 wpm), context-words toggle, close.
 - Screen stays on while playing. Playback pauses when the app leaves the foreground.
 
 **Settings**
@@ -79,7 +79,7 @@ Uses PdfBox-Android to extract text with font sizes, line by line.
 
 - **Frames.** A paragraph becomes one frame per word (punctuation stays attached). A heading becomes one frame showing the whole heading, centred, without a focal letter.
 - **Focal point (ORP).** The pivot letter index depends on word length: 1 → 0, 2–5 → 1, 6–9 → 2, 10–13 → 3, longer → 4. The pivot is drawn at a fixed horizontal position (slightly left of centre) in the accent colour.
-- **Timing.** Measured in word-times of `60 000 / wordsPerMinute` ms. A word takes 1 (1.3 if longer than 8 letters), a heading 1 per word. Pauses add:
+- **Timing.** Measured in word-times of `60 000 / wordsPerMinute` ms. A word takes 1 (1.3 if longer than 8 letters), a heading 2 per word and at least 1.5 s. Pauses add:
   | After | Extra word-times |
   |---|---|
   | `,` `;` `:` `–` `—` | 0.5 |

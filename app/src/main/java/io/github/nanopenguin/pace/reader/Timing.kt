@@ -6,18 +6,23 @@ import kotlin.math.roundToLong
 private const val LONG_WORD_LETTERS = 8
 private const val LONG_WORD_UNITS = 1.3
 
+/** Headings take longer per word than body text: reading one means reorienting. */
+private const val HEADING_UNITS_PER_WORD = 2.0
+
+/** Headings stay at least this long, however fast the reading speed. */
+private const val MIN_HEADING_MILLIS = 1500.0
+
 /** Number of frames over which playback eases in to full speed after pressing play. */
 private const val RAMP_UP_FRAMES = 5
 
 /**
- * How long a frame is shown, in word-times: one per word (a little more for long words),
- * plus its [Pause]. A word-time lasts `60 000 / wordsPerMinute` milliseconds.
+ * How long a frame is shown, in word-times: one per word (a little more for long words, two per
+ * heading word), plus its [Pause]. A word-time lasts `60 000 / wordsPerMinute` milliseconds.
  */
 fun Frame.displayUnits(): Double {
-    val wordCount = text.count { it == ' ' } + 1
     val wordUnits =
         when {
-            wordCount > 1 -> wordCount.toDouble()
+            isHeading -> HEADING_UNITS_PER_WORD * (text.count { it == ' ' } + 1)
             text.count { it.isLetterOrDigit() } > LONG_WORD_LETTERS -> LONG_WORD_UNITS
             else -> 1.0
         }
@@ -37,4 +42,7 @@ fun displayMillis(
     frame: Frame,
     wordsPerMinute: Int,
     framesSincePlay: Int,
-): Long = (frame.displayUnits() * millisPerUnit(wordsPerMinute) * rampUpFactor(framesSincePlay)).roundToLong()
+): Long {
+    val millis = frame.displayUnits() * millisPerUnit(wordsPerMinute) * rampUpFactor(framesSincePlay)
+    return (if (frame.isHeading) maxOf(millis, MIN_HEADING_MILLIS) else millis).roundToLong()
+}

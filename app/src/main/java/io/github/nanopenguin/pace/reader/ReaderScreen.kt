@@ -1,12 +1,13 @@
 package io.github.nanopenguin.pace.reader
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,11 +19,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.keepScreenOn
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,7 +37,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.nanopenguin.pace.R
 import io.github.nanopenguin.pace.book.SampleBook
 import io.github.nanopenguin.pace.ui.BackButton
 import io.github.nanopenguin.pace.ui.theme.PaceTheme
@@ -53,7 +57,9 @@ fun ReaderScreen(
         state = state,
         onTogglePlayback = viewModel::togglePlayback,
         onSeek = viewModel::seekTo,
-        onPreviousSentence = viewModel::previousSentence,
+        onStepWords = viewModel::stepWords,
+        onStepSentences = viewModel::stepSentences,
+        onJumpToChapter = viewModel::jumpToChapter,
         onSlower = viewModel::slower,
         onFaster = viewModel::faster,
         onShowContextChange = viewModel::setShowContext,
@@ -66,25 +72,38 @@ private fun ReaderScreen(
     state: ReaderUiState,
     onTogglePlayback: () -> Unit,
     onSeek: (Int) -> Unit,
-    onPreviousSentence: () -> Unit,
+    onStepWords: (Int) -> Unit,
+    onStepSentences: (Int) -> Unit,
+    onJumpToChapter: (Int) -> Unit,
     onSlower: () -> Unit,
     onFaster: () -> Unit,
     onShowContextChange: (Boolean) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showChapters by rememberSaveable { mutableStateOf(false) }
+    val previewAlpha by animateFloatAsState(if (state.isPlaying) 0f else 1f, label = "preview")
+
+    // The gesture detector lives across recompositions, so it reads the latest callbacks.
+    val currentOnTap by rememberUpdatedState(onTogglePlayback)
+    val currentOnStepWords by rememberUpdatedState(onStepWords)
+    val currentOnStepSentences by rememberUpdatedState(onStepSentences)
+
     Box(
         modifier =
         modifier
             .fillMaxSize()
             .then(if (state.isPlaying) Modifier.keepScreenOn() else Modifier)
-            .clickable(interactionSource = null, indication = null, onClick = onTogglePlayback)
-            .safeDrawingPadding(),
+            .readerGestures(
+                haptics = LocalHapticFeedback.current,
+                onTap = { currentOnTap() },
+                onStepWords = { currentOnStepWords(it) },
+                onStepSentences = { currentOnStepSentences(it) },
+            ).safeDrawingPadding(),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.align(Alignment.Center),
-        ) {
+        // The word sits in the middle; the sentence preview hangs below it.
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) {
+            Spacer(modifier = Modifier.weight(1f))
             Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = 120.dp)) {
                 val frame = state.frame
                 when {
@@ -100,13 +119,11 @@ private fun ReaderScreen(
                     )
                 }
             }
-            // Kept in the layout while playing so the word does not jump when pausing.
-            Text(
-                text = stringResource(R.string.reader_tap_to_read),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alpha(if (state.isPlaying) 0f else 1f),
-            )
+            Box(modifier = Modifier.weight(1f).graphicsLayer { alpha = previewAlpha }) {
+                state.preview?.let {
+                    SentencePreviewText(it, Modifier.padding(horizontal = 32.dp, vertical = 16.dp))
+                }
+            }
         }
 
         AnimatedVisibility(
@@ -127,7 +144,7 @@ private fun ReaderScreen(
             ReaderControls(
                 state = state,
                 onSeek = onSeek,
-                onPreviousSentence = onPreviousSentence,
+                onOpenChapters = { showChapters = true },
                 onSlower = onSlower,
                 onFaster = onFaster,
                 onShowContextChange = onShowContextChange,
@@ -139,11 +156,23 @@ private fun ReaderScreen(
                 modifier =
                 Modifier
                     .align(Alignment.BottomStart)
-                    .fillMaxWidth(state.progress)
+                    .fillMaxWidth(state.bookProgress)
                     .height(2.dp)
                     .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
             )
         }
+    }
+
+    if (showChapters) {
+        ChapterSheet(
+            chapters = state.chapters,
+            currentChapter = state.chapterIndex,
+            onSelect = {
+                onJumpToChapter(it)
+                showChapters = false
+            },
+            onDismiss = { showChapters = false },
+        )
     }
 }
 
@@ -167,20 +196,25 @@ private fun ReaderScreenPreview() {
             state =
             ReaderUiState(
                 bookTitle = "Alice’s Adventures in Wonderland",
-                chapterTitle = "Down the Rabbit-Hole",
                 frame = Frame("considering", isHeading = false, Pause.None, blockIndex = 0),
-                wordsBefore = listOf("So", "she", "was"),
-                wordsAfter = listOf("in", "her", "own", "mind"),
+                wordsBefore = emptyList(),
+                wordsAfter = emptyList(),
+                preview = SentencePreview("So she was considering in her own mind".split(" "), currentWord = 3),
+                chapters = listOf(Chapter("Down the Rabbit-Hole", level = 1, firstFrame = 0)),
+                chapterIndex = 0,
                 position = 40,
-                lastPosition = 200,
-                minutesLeft = 3,
+                section = 0..200,
+                bookProgress = 0.2f,
+                minutesLeftInSection = 3,
                 isPlaying = false,
                 wordsPerMinute = 300,
-                showContext = true,
+                showContext = false,
             ),
             onTogglePlayback = {},
             onSeek = {},
-            onPreviousSentence = {},
+            onStepWords = {},
+            onStepSentences = {},
+            onJumpToChapter = {},
             onSlower = {},
             onFaster = {},
             onShowContextChange = {},

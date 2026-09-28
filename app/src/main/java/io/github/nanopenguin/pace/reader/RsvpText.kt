@@ -3,6 +3,7 @@ package io.github.nanopenguin.pace.reader
 /** A heading and the frame it starts at. Headings of any level count as chapters. */
 data class Chapter(
     val title: String,
+    val level: Int,
     val firstFrame: Int,
 )
 
@@ -19,18 +20,43 @@ class RsvpText(
 
     val lastIndex: Int get() = frames.lastIndex
 
-    fun unitsLeft(index: Int): Double = unitsFromEnd[index]
+    /** Display time of the frames in [range], in word-times. */
+    fun units(range: IntRange): Double = unitsFromEnd[range.first] - unitsFromEnd[range.last + 1]
 
-    fun chapterAt(index: Int): Chapter? = chapters.lastOrNull { it.firstFrame <= index }
+    /** Index into [chapters] of the chapter containing [index], or null before the first heading. */
+    fun chapterIndexAt(index: Int): Int? = chapters.indexOfLast { it.firstFrame <= index }.takeIf { it >= 0 }
+
+    /**
+     * Frames of the chapter containing [index]. Text before the first heading is its own section,
+     * and a book without headings is one section.
+     */
+    fun sectionAt(index: Int): IntRange {
+        val chapter = chapterIndexAt(index)
+        val start = chapter?.let { chapters[it].firstFrame } ?: 0
+        val next = chapters.getOrNull(chapter?.plus(1) ?: 0)
+        val end = next?.let { it.firstFrame - 1 } ?: lastIndex
+        return start..end
+    }
+
+    /** Frames of the sentence containing [index]. A heading is a sentence of its own. */
+    fun sentenceAt(index: Int): IntRange {
+        var start = index
+        while (start > 0 && frames[start - 1].pause < Pause.Sentence) start--
+        var end = index
+        while (end < lastIndex && frames[end].pause < Pause.Sentence) end++
+        return start..end
+    }
 
     /**
      * Start of the sentence containing [index], or of the previous sentence if [index] already
      * starts one, so that repeated calls keep moving back.
      */
-    fun previousSentenceStart(index: Int): Int {
-        var start = (index - 1).coerceAtLeast(0)
-        while (start > 0 && frames[start - 1].pause < Pause.Sentence) start--
-        return start
+    fun previousSentenceStart(index: Int): Int = sentenceAt((index - 1).coerceAtLeast(0)).first
+
+    /** Start of the sentence after the one containing [index], or [index] in the last sentence. */
+    fun nextSentenceStart(index: Int): Int {
+        val next = sentenceAt(index).last + 1
+        return if (next <= lastIndex) next else index
     }
 
     /** Up to [count] words from the same block before [index], in reading order. */

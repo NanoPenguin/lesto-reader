@@ -1,5 +1,6 @@
 package io.github.nanopenguin.pace.reader
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -23,50 +25,49 @@ import androidx.compose.ui.unit.dp
 import io.github.nanopenguin.pace.R
 import kotlin.math.roundToInt
 
-/** Controls shown while paused: where you are, seeking, speed and context words. */
+/** Controls shown while paused: chapter, position within it, speed and context words. */
 @Composable
 fun ReaderControls(
     state: ReaderUiState,
     onSeek: (Int) -> Unit,
-    onPreviousSentence: () -> Unit,
+    onOpenChapters: () -> Unit,
     onSlower: () -> Unit,
     onFaster: () -> Unit,
     onShowContextChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val percent = (state.bookProgress * 100).roundToInt()
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Row {
-            Text(
-                text = state.chapterTitle ?: state.bookTitle,
-                style = MaterialTheme.typography.labelLarge,
-                color = muted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = stringResource(R.string.reader_minutes_left, state.minutesLeft),
-                style = MaterialTheme.typography.labelLarge,
-                color = muted,
-            )
-        }
+        ChapterTitle(state, onOpenChapters)
 
         Slider(
             value = state.position.toFloat(),
             onValueChange = { onSeek(it.roundToInt()) },
-            valueRange = 0f..state.lastPosition.coerceAtLeast(1).toFloat(),
+            valueRange = state.section.first.toFloat()..maxOf(state.section.last, state.section.first + 1).toFloat(),
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPreviousSentence) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_replay),
-                    contentDescription = stringResource(R.string.reader_previous_sentence),
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
+        Row {
+            Text(
+                text =
+                if (state.chapterIndex != null) {
+                    stringResource(R.string.reader_chapter_progress, state.chapterIndex + 1, state.chapters.size, percent)
+                } else {
+                    stringResource(R.string.reader_book_progress, percent)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = muted,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.reader_minutes_left, state.minutesLeftInSection),
+                style = MaterialTheme.typography.labelMedium,
+                color = muted,
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
             IconButton(onClick = onSlower) {
                 Icon(
                     painter = painterResource(R.drawable.ic_remove),
@@ -90,6 +91,43 @@ fun ReaderControls(
                 selected = state.showContext,
                 onClick = { onShowContextChange(!state.showContext) },
                 label = { Text(stringResource(R.string.reader_context)) },
+            )
+        }
+    }
+}
+
+/** The current chapter's title; opens the chapter list when the book has chapters. */
+@Composable
+private fun ChapterTitle(
+    state: ReaderUiState,
+    onOpenChapters: () -> Unit,
+) {
+    val title = state.chapterIndex?.let { state.chapters[it].title } ?: state.bookTitle
+    val hasChapters = state.chapters.isNotEmpty()
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+        Modifier
+            .clip(MaterialTheme.shapes.small)
+            .clickable(
+                enabled = hasChapters,
+                onClickLabel = stringResource(R.string.reader_chapters),
+                onClick = onOpenChapters,
+            ).padding(vertical = 8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (hasChapters) {
+            Icon(
+                painter = painterResource(R.drawable.ic_expand_more),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

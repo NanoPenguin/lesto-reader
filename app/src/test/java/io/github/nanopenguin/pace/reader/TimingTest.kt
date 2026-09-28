@@ -23,9 +23,16 @@ class TimingTest {
     }
 
     @Test
-    fun `a heading takes one word-time per word plus its pause`() {
+    fun `a heading takes two word-times per word plus its pause`() {
         val heading = Frame("The Pool of Tears", isHeading = true, Pause.Heading, blockIndex = 0)
-        assertEquals(6.0, heading.displayUnits(), 0.0)
+        assertEquals(10.0, heading.displayUnits(), 0.0)
+        assertEquals(2000, displayMillis(heading, wordsPerMinute = 300, framesSincePlay = 100))
+    }
+
+    @Test
+    fun `headings stay readable at high speeds`() {
+        val heading = Frame("Prologue", isHeading = true, Pause.Heading, blockIndex = 0)
+        assertEquals(1500, displayMillis(heading, wordsPerMinute = 900, framesSincePlay = 100))
     }
 
     @Test

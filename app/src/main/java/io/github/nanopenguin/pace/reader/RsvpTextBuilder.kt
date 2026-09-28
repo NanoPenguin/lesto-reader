@@ -20,7 +20,7 @@ fun Book.toRsvpText(): RsvpText {
         when (block) {
             is Block.Heading -> {
                 val title = words.joinToString(" ")
-                chapters += Chapter(title, firstFrame = frames.size)
+                chapters += Chapter(title, block.level, firstFrame = frames.size)
                 frames += Frame(title, isHeading = true, Pause.Heading, blockIndex)
             }
 
