@@ -1,11 +1,27 @@
 # Pace
 
-A minimal RSVP reader for Android. Pace shows your EPUB and PDF books one word at a time,
-around a fixed focal point, so you can read faster without moving your eyes.
+A minimal RSVP reader for Android: your EPUB and PDF books, one word at a time.
 
-- Opens EPUB and PDF files from your device
-- Adjustable reading speed, optional context words
-- Chapter headings shown distinctly
+<table>
+  <tr>
+    <td align="center"><img src="docs/media/reading.gif" width="240" alt="Reading word by word"></td>
+    <td align="center"><img src="docs/media/paused.gif" width="240" alt="Dragging the paused page"></td>
+    <td align="center"><img src="docs/media/context.gif" width="240" alt="Reading with context words"></td>
+  </tr>
+  <tr>
+    <td align="center">Read at a fixed focal point</td>
+    <td align="center">Pause to see the page</td>
+    <td align="center">Optional context words</td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center"><img src="docs/media/light.gif" width="240" alt="Pace in light mode"></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center">Also in light</td>
+  </tr>
+</table>
+
+- EPUB and PDF, with chapters
 - Remembers where you left off
 - No permissions, no network, no tracking
 
@@ -13,7 +29,7 @@ around a fixed focal point, so you can read faster without moving your eyes.
 
 ## Building
 
-Requires the Android SDK and Java 25 (Android Studio includes both; Gradle downloads Java if missing).
+Requires the Android SDK and Java 25 (Android Studio includes both).
 
 ```
 ./gradlew assembleDebug
@@ -21,12 +37,10 @@ Requires the Android SDK and Java 25 (Android Studio includes both; Gradle downl
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) for conventions and [docs/DESIGN.md](docs/DESIGN.md) for scope.
+See [AGENTS.md](AGENTS.md) for conventions and [docs/DESIGN.md](docs/DESIGN.md) for scope.
 Run `./gradlew spotlessApply lint test` before opening a pull request.
 
 ## License
 
-[MIT](LICENSE). The bundled Atkinson Hyperlegible Next font is licensed under the
-[SIL Open Font License](licenses/AtkinsonHyperlegibleNext-OFL.txt), and the Material Symbols icons
-under the [Apache License 2.0](licenses/MaterialSymbols-Apache-2.0.txt). Libraries and their licenses
-are listed in the app under Settings › Third-party licenses.
+[MIT](LICENSE). Bundled assets: Atkinson Hyperlegible Next ([OFL](licenses/AtkinsonHyperlegibleNext-OFL.txt)),
+Material Symbols ([Apache 2.0](licenses/MaterialSymbols-Apache-2.0.txt)). Libraries are listed in the app.

@@ -50,3 +50,4 @@ Milestones are done in order. Each ends with a building, testable app.
 - [ ] Test on a range of real books and devices
 - [ ] Signed release build, F-Droid-friendly (no proprietary dependencies)
 - [ ] Changelog and tagged release
+- [x] README GIFs and store screenshots

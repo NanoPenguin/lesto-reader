@@ -35,6 +35,8 @@ app/src/main/java/io/github/nanopenguin/pace/
   home/       Home screen
   ui/         Theme, shared composables
 licenses/     Licenses of bundled third-party assets
+docs/media/   README GIFs
+fastlane/     Store listing screenshots (F-Droid layout)
 ```
 
 ## Conventions
