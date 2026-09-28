@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -258,17 +260,23 @@ private fun ReaderScreen(
     }
 }
 
+private val MIN_HEADING_FONT_SIZE = 16.sp
+
 @Composable
 private fun HeadingText(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val style = MaterialTheme.typography.headlineMedium
     Text(
         text = text,
-        style = MaterialTheme.typography.headlineMedium,
+        style = style,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
         maxLines = 4,
+        // Long chapter titles shrink to fit rather than lose their last words.
+        autoSize = TextAutoSize.StepBased(minFontSize = MIN_HEADING_FONT_SIZE, maxFontSize = style.fontSize),
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier.padding(horizontal = 32.dp),
     )
 }
