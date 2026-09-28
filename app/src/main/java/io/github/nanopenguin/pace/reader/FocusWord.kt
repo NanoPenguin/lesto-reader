@@ -7,8 +7,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -25,17 +23,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 
-/** Horizontal position of the focal letter, as a fraction of the width: slightly left of centre. */
-private const val FOCAL_LINE = 0.4f
-private const val CONTEXT_ALPHA = 0.3f
-
-/** Context words fade out over this fraction of the width on each side. */
-private const val CONTEXT_FADE = 0.3f
-
 /** Long words are scaled down rather than come closer to the edge than this. */
 private val EdgeWidth = 24.dp
-private val GuideLength = 10.dp
-private val GuideGap = 6.dp
 
 /**
  * Draws [word] so that its focal letter always sits at the same spot, marked by two short guides.
@@ -54,7 +43,7 @@ fun FocusWord(
     val ink = MaterialTheme.colorScheme.onSurface
     val accent = MaterialTheme.colorScheme.primary
     val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-    val height = with(LocalDensity.current) { style.fontSize.toDp() * 1.5f } + (GuideLength + GuideGap) * 2
+    val height = with(LocalDensity.current) { style.fontSize.toDp() * LINE_SPACING } + GuideLength * 4
 
     Canvas(
         modifier =
@@ -100,25 +89,12 @@ fun FocusWord(
                 val after = measurer.measure(wordsAfter.joinToString(" "), contextStyle, softWrap = false, maxLines = 1)
                 drawText(after, topLeft = Offset(left + layout.size.width + space, top))
             }
-            drawRect(
-                brush =
-                Brush.horizontalGradient(
-                    0f to Color.Transparent,
-                    CONTEXT_FADE to Color.Black,
-                    1f - CONTEXT_FADE to Color.Black,
-                    1f to Color.Transparent,
-                ),
-                blendMode = BlendMode.DstIn,
-            )
+            fadeHorizontalEdges(CONTEXT_EDGE_FADE)
         }
 
         drawText(layout, topLeft = Offset(left, top))
 
-        val guideTop = top - GuideGap.toPx()
-        val guideBottom = top + layout.size.height + GuideGap.toPx()
-        val stroke = 1.dp.toPx()
-        drawLine(guideColor, Offset(focalX, guideTop - GuideLength.toPx()), Offset(focalX, guideTop), stroke)
-        drawLine(guideColor, Offset(focalX, guideBottom), Offset(focalX, guideBottom + GuideLength.toPx()), stroke)
+        drawFocalGuides(focalX, top, top + layout.size.height, guideColor)
     }
 }
 
@@ -137,4 +113,4 @@ private fun measureWord(
     return measurer.measure(text, style, softWrap = false, maxLines = 1)
 }
 
-private fun TextLayoutResult.focalCenter(focal: Int): Float = if (focal < layoutInput.text.length) getBoundingBox(focal).center.x else size.width / 2f
+internal fun TextLayoutResult.focalCenter(focal: Int): Float = if (focal < layoutInput.text.length) getBoundingBox(focal).center.x else size.width / 2f

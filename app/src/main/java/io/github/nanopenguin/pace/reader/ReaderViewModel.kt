@@ -19,14 +19,24 @@ private val SpeedRange = 100..1000
 /** How many neighbouring words are offered on each side; the screen shows as many as fit. */
 private const val CONTEXT_WORD_COUNT = 8
 
-/** The sentence preview is cut to this many words around the current one, so it stays short. */
-private const val PREVIEW_WORDS_BEFORE = 10
-private const val PREVIEW_WORDS_AFTER = 14
+/** Sentences shown above and below the current one while paused; the screen fades out the rest. */
+private const val PAGE_SENTENCES = 6
 
-/** The current sentence while paused, cut around [currentWord] if long. */
-data class SentencePreview(
-    val words: List<String>,
-    val currentWord: Int,
+/** Lines are cut to this many words (around the current word on the current line); the rest is off-screen. */
+private const val PAGE_LINE_WORDS = 40
+
+/**
+ * The text around the current position while paused: one sentence per line.
+ *
+ * @property currentWord index into [current] of the word at the focal point, or null for a heading.
+ * @property before preceding sentences, nearest last.
+ * @property after following sentences, nearest first.
+ */
+data class TextPage(
+    val current: List<String>,
+    val currentWord: Int?,
+    val before: List<String>,
+    val after: List<String>,
 )
 
 data class ReaderUiState(
@@ -35,8 +45,8 @@ data class ReaderUiState(
     val frame: Frame?,
     val wordsBefore: List<String>,
     val wordsAfter: List<String>,
-    /** The sentence around the current word; null for headings. Shown only while paused. */
-    val preview: SentencePreview?,
+    /** Only while paused. */
+    val page: TextPage?,
     val chapters: List<Chapter>,
     /** Index into [chapters], or null before the first heading. */
     val chapterIndex: Int?,
@@ -147,7 +157,7 @@ class ReaderViewModel(
             frame = frame,
             wordsBefore = if (frame != null && showContext) text.wordsBefore(position, CONTEXT_WORD_COUNT) else emptyList(),
             wordsAfter = if (frame != null && showContext) text.wordsAfter(position, CONTEXT_WORD_COUNT) else emptyList(),
-            preview = if (frame != null && !frame.isHeading) sentencePreview() else null,
+            page = if (frame != null && playback == null) textPage() else null,
             chapters = text.chapters,
             chapterIndex = text.chapterIndexAt(position),
             position = position,
@@ -160,14 +170,35 @@ class ReaderViewModel(
         )
     }
 
-    private fun sentencePreview(): SentencePreview {
+    private fun textPage(): TextPage {
         val sentence = text.sentenceAt(position)
-        val first = maxOf(sentence.first, position - PREVIEW_WORDS_BEFORE)
-        val last = minOf(sentence.last, position + PREVIEW_WORDS_AFTER)
-        val words = (first..last).map { text.frames[it].text }
-        return SentencePreview(
-            words = listOfNotNull("…".takeIf { first > sentence.first }) + words + listOfNotNull("…".takeIf { last < sentence.last }),
-            currentWord = position - first + if (first > sentence.first) 1 else 0,
+        val first = maxOf(sentence.first, position - PAGE_LINE_WORDS / 2)
+        val last = minOf(sentence.last, first + PAGE_LINE_WORDS)
+
+        val before = mutableListOf<String>()
+        var start = sentence.first
+        while (before.size < PAGE_SENTENCES && start > 0) {
+            val previous = text.sentenceAt(start - 1)
+            before.add(0, lineText(previous))
+            start = previous.first
+        }
+
+        val after = mutableListOf<String>()
+        var end = sentence.last
+        while (after.size < PAGE_SENTENCES && end < text.lastIndex) {
+            val next = text.sentenceAt(end + 1)
+            after.add(lineText(next))
+            end = next.last
+        }
+
+        return TextPage(
+            current = (first..last).map { text.frames[it].text },
+            currentWord = if (text.frames[position].isHeading) null else position - first,
+            before = before,
+            after = after,
         )
     }
+
+    private fun lineText(sentence: IntRange): String = (sentence.first..minOf(sentence.last, sentence.first + PAGE_LINE_WORDS))
+        .joinToString(" ") { text.frames[it].text }
 }

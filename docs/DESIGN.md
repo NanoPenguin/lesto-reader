@@ -26,8 +26,9 @@ Out (for now): OCR of scanned PDFs, cloud sync, bookmarks, notes, statistics, co
 
 **Reader**
 - Playing: only the word, its focal guides, and a hairline progress bar.
-- Tap: play / pause. Swipe sideways: word by word. Swipe up / down: sentence by sentence. Like scrolling a page, dragging right or down goes back. Swiping pauses playback.
-- Paused: the current sentence appears below the word, current word highlighted. Controls: chapter title (opens the chapter list), a slider over the current chapter (the whole book if it has no headings), "Chapter 3 of 24 · 38%", minutes left in the chapter, speed −/+ (steps of 25 wpm), context-words toggle, close.
+- Tap: play / pause. Swiping pauses playback.
+- Paused: the text becomes a page with one sentence per line. The current sentence is the middle line, its current word at the focal point; neighbouring sentences are dimmed above and below. Swipe up / down scrolls the page one sentence per line; swipe sideways steps through words, panning the page. Like scrolling, dragging right or down goes back.
+- Paused controls: chapter title (opens the chapter list), a slider over the current chapter (the whole book if it has no headings), "Chapter 3 of 24 · 38%", minutes left in the chapter, speed −/+ (steps of 25 wpm), context-words toggle, close.
 - Screen stays on while playing. Playback pauses when the app leaves the foreground.
 
 **Settings**

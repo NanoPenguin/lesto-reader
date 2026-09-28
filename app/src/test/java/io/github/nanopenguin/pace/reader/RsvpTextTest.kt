@@ -82,11 +82,9 @@ class RsvpTextTest {
     }
 
     @Test
-    fun `going back a sentence first returns to the start of the current one`() {
-        val rabbit = words.indexOf("Rabbit")
-        val sentenceStart = words.indexOf("The")
-        assertEquals(sentenceStart, text.previousSentenceStart(rabbit))
-        assertEquals(words.indexOf("It"), text.previousSentenceStart(sentenceStart))
+    fun `going back a sentence moves to the start of the previous sentence`() {
+        assertEquals(words.indexOf("It"), text.previousSentenceStart(words.indexOf("Rabbit")))
+        assertEquals(words.indexOf("It"), text.previousSentenceStart(words.indexOf("The")))
         assertEquals(0, text.previousSentenceStart(words.indexOf("It")))
         assertEquals(0, text.previousSentenceStart(0))
     }

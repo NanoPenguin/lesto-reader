@@ -1,5 +1,6 @@
 package io.github.nanopenguin.pace.reader
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -39,7 +41,15 @@ fun ReaderControls(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val percent = (state.bookProgress * 100).roundToInt()
 
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
+    // Opaque, with a soft top edge, so the paused page's lines slide under the controls.
+    val background = MaterialTheme.colorScheme.surface
+    Column(
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(0f to background.copy(alpha = 0f), 0.15f to background))
+            .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 16.dp),
+    ) {
         ChapterTitle(state, onOpenChapters)
 
         Slider(

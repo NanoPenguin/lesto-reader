@@ -47,11 +47,11 @@ class RsvpText(
         return start..end
     }
 
-    /**
-     * Start of the sentence containing [index], or of the previous sentence if [index] already
-     * starts one, so that repeated calls keep moving back.
-     */
-    fun previousSentenceStart(index: Int): Int = sentenceAt((index - 1).coerceAtLeast(0)).first
+    /** Start of the sentence before the one containing [index], or 0 in the first sentence. */
+    fun previousSentenceStart(index: Int): Int {
+        val previous = sentenceAt(index).first - 1
+        return if (previous >= 0) sentenceAt(previous).first else 0
+    }
 
     /** Start of the sentence after the one containing [index], or [index] in the last sentence. */
     fun nextSentenceStart(index: Int): Int {
