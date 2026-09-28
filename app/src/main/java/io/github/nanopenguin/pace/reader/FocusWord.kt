@@ -21,7 +21,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import kotlin.math.min
 
 /** Long words are scaled down rather than come closer to the edge than this. */
 private val EdgeWidth = 24.dp
@@ -62,12 +61,10 @@ fun FocusWord(
         var layout = measureWord(measurer, word, focal, wordStyle, accent)
         val focalCenter = layout.focalCenter(focal)
         val scale =
-            min(
+            minOf(
                 1f,
-                min(
-                    (focalX - edge) / focalCenter.coerceAtLeast(1f),
-                    (size.width - focalX - edge) / (layout.size.width - focalCenter).coerceAtLeast(1f),
-                ),
+                (focalX - edge) / focalCenter.coerceAtLeast(1f),
+                (size.width - focalX - edge) / (layout.size.width - focalCenter).coerceAtLeast(1f),
             )
         if (scale < 1f) {
             wordStyle = wordStyle.copy(fontSize = style.fontSize * scale)

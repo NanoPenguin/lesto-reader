@@ -1,15 +1,14 @@
 package io.github.nanopenguin.pace
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile
 import io.github.nanopenguin.pace.book.BookCache
 import io.github.nanopenguin.pace.book.BookRepository
-import io.github.nanopenguin.pace.library.Library
 import io.github.nanopenguin.pace.library.LibrarySerializer
 import io.github.nanopenguin.pace.library.LibraryStore
-import io.github.nanopenguin.pace.settings.Settings
 import io.github.nanopenguin.pace.settings.SettingsSerializer
 import io.github.nanopenguin.pace.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
@@ -25,18 +24,15 @@ class AppContainer(
 
     val books = BookRepository(context, BookCache(File(context.cacheDir, "books")))
 
-    // A damaged file starts over empty rather than failing every time it is read.
-    val library =
-        LibraryStore(
-            DataStoreFactory.create(LibrarySerializer, ReplaceFileCorruptionHandler { Library() }) {
-                context.dataStoreFile("library.json")
-            },
-        )
+    val library = LibraryStore(context.jsonDataStore("library.json", LibrarySerializer))
 
-    val settings =
-        SettingsStore(
-            DataStoreFactory.create(SettingsSerializer, ReplaceFileCorruptionHandler { Settings() }) {
-                context.dataStoreFile("settings.json")
-            },
-        )
+    val settings = SettingsStore(context.jsonDataStore("settings.json", SettingsSerializer))
+}
+
+/** A damaged file starts over with the default value rather than failing every time it is read. */
+private fun <T> Context.jsonDataStore(
+    fileName: String,
+    serializer: JsonSerializer<T>,
+): DataStore<T> = DataStoreFactory.create(serializer, ReplaceFileCorruptionHandler { serializer.defaultValue }) {
+    dataStoreFile(fileName)
 }

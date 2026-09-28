@@ -15,28 +15,6 @@ import java.io.FileNotFoundException
 /** Bump when parsing changes, so that cached books are parsed again. */
 private const val PARSER_VERSION = 1
 
-enum class BookError {
-    /** The file was moved or deleted. */
-    Missing,
-
-    /**
-     * The app may no longer read the file. Its permission may have been revoked, or the file
-     * deleted: some providers drop the permission of deleted files, so the two look alike.
-     */
-    NoAccess,
-
-    /** The file is not a book this app can read, or it is damaged. */
-    Unreadable,
-
-    /** The book contains no text, e.g. only images or a scanned PDF. */
-    NoText,
-}
-
-class BookException(
-    val error: BookError,
-    cause: Throwable? = null,
-) : Exception(error.name, cause)
-
 /** Opens books the user picked in the system file picker. */
 class BookRepository(
     private val context: Context,
@@ -91,10 +69,7 @@ class BookRepository(
         named
     }
 
-    /**
-     * Why reading [uri] was refused. Providers also refuse files that were deleted, so if the app
-     * still holds its permission, the file is gone.
-     */
+    /** Why reading [uri] was refused. If the app still holds its permission, the file was deleted. */
     private fun accessError(uri: Uri): BookError {
         val hasPermission = resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
         return if (hasPermission) BookError.Missing else BookError.NoAccess
@@ -150,5 +125,4 @@ private const val SIGNATURE_SIZE = 4
 /** Every EPUB is a ZIP archive, which starts with these bytes. */
 private val ZIP_SIGNATURE = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
 
-/** "%PDF", the start of every PDF. */
 private val PDF_SIGNATURE = "%PDF".toByteArray()

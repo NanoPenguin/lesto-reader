@@ -11,9 +11,6 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.util.zip.ZipInputStream
 
-/** Thrown when a file is not a book this app can read. */
-class BookFormatException(message: String) : Exception(message)
-
 /**
  * Reads EPUB 2 and 3 books: metadata, the reading order, and the text as headings and paragraphs.
  *
@@ -327,16 +324,3 @@ private fun sameTitle(
     val y = normalize(b)
     return x.isNotEmpty() && y.isNotEmpty() && (x in y || y in x)
 }
-
-private val Whitespace = Regex("\\s+")
-
-/** Normalises whitespace and removes invisible characters that would break words apart or glue them together. */
-internal fun cleanText(text: String): String = text
-    .replace('\u00A0', ' ')
-    .replace('\u2007', ' ')
-    .replace('\u202F', ' ')
-    .replace("\u00AD", "")
-    .replace("\u200B", "")
-    .replace("\uFEFF", "")
-    .replace(Whitespace, " ")
-    .trim()

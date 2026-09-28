@@ -27,4 +27,6 @@ Run `./gradlew spotlessApply lint test` before opening a pull request.
 ## License
 
 [MIT](LICENSE). The bundled Atkinson Hyperlegible Next font is licensed under the
-[SIL Open Font License](licenses/AtkinsonHyperlegibleNext-OFL.txt).
+[SIL Open Font License](licenses/AtkinsonHyperlegibleNext-OFL.txt), and the Material Symbols icons
+under the [Apache License 2.0](licenses/MaterialSymbols-Apache-2.0.txt). Libraries and their licenses
+are listed in the app under Settings › Third-party licenses.

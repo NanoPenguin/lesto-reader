@@ -16,19 +16,16 @@ private const val HEADING_GAP = 0.8f
  */
 class PageGeometry(
     private val measurer: TextMeasurer,
-    style: TextStyle,
+    private val bodyStyle: TextStyle,
     /** x of the focal point on screen. */
     val focalX: Float,
     val lineHeight: Float,
 ) {
-    /** Extra space above chapter headings. */
+    private val headingStyle = bodyStyle.copy(fontWeight = FontWeight.SemiBold)
     private val headingGap = lineHeight * HEADING_GAP
 
     /** Vertical position of each line of [page] relative to the current one. */
     fun lineOffsets(page: TextPage): FloatArray = page.lineOffsets(lineHeight, headingGap)
-
-    private val bodyStyle = style
-    private val headingStyle = style.copy(fontWeight = FontWeight.SemiBold)
 
     fun layout(line: PageLine): TextLayoutResult = layout(AnnotatedString(line.text), line.isHeading)
 

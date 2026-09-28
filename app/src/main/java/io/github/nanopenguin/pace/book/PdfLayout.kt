@@ -61,11 +61,8 @@ private val Word = Regex("""\p{L}{3,}""")
 private const val SENTENCE_ENDS = ".!?:\"”’)"
 
 /**
- * Turns the lines of a PDF into headings and paragraphs. A PDF only says where text is drawn, so
- * the structure is inferred. Headings come from the outline if there is one, and otherwise from
- * larger fonts; combining both would find most headings twice. Paragraphs are split on gaps,
- * indents and short last lines. Running headers, footers and page numbers are dropped, and words
- * hyphenated across lines are joined again.
+ * Infers headings and paragraphs from where a PDF draws its text. Headings come from the outline,
+ * or from larger fonts without one; using both would find most headings twice.
  */
 object PdfLayout {
     fun blocks(
@@ -105,20 +102,22 @@ private class Metrics(
     val fullWidth: Float,
 )
 
-private sealed interface PageItem
+private sealed interface PageItem {
+    val baseline: Float
+}
 
 private data class LineItem(
     val line: PdfLine,
-) : PageItem
+) : PageItem {
+    override val baseline get() = line.baseline
+}
 
 private data class HeadingItem(
     val text: String,
     val fontSize: Float,
-    val baseline: Float,
+    override val baseline: Float,
     val level: Int = 1,
 ) : PageItem
-
-private val PageItem.baseline get() = if (this is LineItem) line.baseline else (this as HeadingItem).baseline
 
 /** Keeps a soft hyphen at a line end as a hyphen, so the word is joined with the next line. */
 private fun cleanLine(text: String): String {
@@ -133,7 +132,7 @@ private fun bodyFontSize(lines: List<PdfLine>): Float? = lines
     ?.let { (halfPoints, _) -> halfPoints / 2f }
     ?.takeIf { it > 0 }
 
-// Larger gaps are between paragraphs or columns, not lines.
+/** The median distance between consecutive lines; larger gaps separate paragraphs or columns. */
 private fun lineSpacing(
     pages: List<List<PdfLine>>,
     bodySize: Float,

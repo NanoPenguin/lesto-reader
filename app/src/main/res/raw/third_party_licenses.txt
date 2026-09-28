@@ -16,8 +16,10 @@ jsoup
   Copyright (c) 2009-2026 Jonathan Hedley
   MIT License
 
-AndroidX, Jetpack Compose, Kotlin, kotlinx.coroutines, kotlinx.serialization, Guava ListenableFuture, JSpecify
-  Copyright The Android Open Source Project, JetBrains s.r.o., Google LLC and the JSpecify authors
+AndroidX, Jetpack Compose, Kotlin, kotlinx.coroutines, kotlinx.serialization, JetBrains Annotations,
+Guava ListenableFuture, JSpecify, Okio, Material Symbols icons
+  Copyright The Android Open Source Project, JetBrains s.r.o., Google LLC, the JSpecify authors
+  and Square, Inc.
   Apache License 2.0
 
 

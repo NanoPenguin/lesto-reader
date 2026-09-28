@@ -218,6 +218,7 @@ class ReaderViewModel(
         val section = if (frame != null) text.sectionAt(position) else 0..0
         val secondsLeft =
             if (frame != null) text.units(position..section.last) * millisPerUnit(wordsPerMinute) / 1000 else 0.0
+        val hasContext = frame != null && showContext
         return ReaderUiState(
             isLoading = isLoading,
             loadingProgress = loadingProgress,
@@ -225,8 +226,8 @@ class ReaderViewModel(
             canRemove = canRemove,
             bookTitle = bookTitle,
             frame = frame,
-            wordsBefore = if (frame != null && showContext) text.wordsBefore(position, CONTEXT_WORD_COUNT) else emptyList(),
-            wordsAfter = if (frame != null && showContext) text.wordsAfter(position, CONTEXT_WORD_COUNT) else emptyList(),
+            wordsBefore = if (hasContext) text.wordsBefore(position, CONTEXT_WORD_COUNT) else emptyList(),
+            wordsAfter = if (hasContext) text.wordsAfter(position, CONTEXT_WORD_COUNT) else emptyList(),
             page = if (frame != null && playback == null) textPage() else null,
             chapters = text.chapters,
             chapterIndex = text.chapterIndexAt(position),

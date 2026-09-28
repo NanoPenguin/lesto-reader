@@ -24,13 +24,9 @@ import kotlinx.coroutines.launch
 private const val SETTLE_MILLIS = 250
 
 /**
- * Tap to play or pause. Drag in any direction to move the paused page, which follows the finger
- * and keeps moving when flung; like a page, dragging right or down pulls earlier text into view.
- * Once it stops, the page glides so that the current word sits on the focal point.
- *
- * [onMove] moves the page and returns whether another word became current, which ticks.
- * [restingPlace] gives the `scrollX` and `offsetY` of [PageScroll] to settle at.
- * The callbacks are captured once, so they must not change between recompositions.
+ * Tap to play or pause. Drag or fling to move the paused page; once it stops, it glides to
+ * [restingPlace] (`scrollX`, `offsetY`). [onMove] returns whether another word became current,
+ * which ticks. The callbacks are captured once, so they must not change between recompositions.
  */
 fun Modifier.readerGestures(
     haptics: HapticFeedback,
@@ -49,7 +45,7 @@ fun Modifier.readerGestures(
                 val velocity = velocityTracker.calculateVelocity()
                 settling =
                     launch {
-                        // Ticks would buzz while flinging; they are for the finger's steps.
+                        // No ticks while flinging: they would buzz.
                         var flung = Offset.Zero
                         AnimationState(Offset.VectorConverter, Offset.Zero, AnimationVector(velocity.x, velocity.y))
                             .animateDecay(splineBasedDecay(this@pointerInput)) {
