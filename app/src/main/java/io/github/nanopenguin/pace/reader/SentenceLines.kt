@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -16,39 +17,40 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 
-/** The rest of the current sentence is a little brighter than the sentences around it. */
-private const val CURRENT_SENTENCE_ALPHA = 0.55f
+/** The rest of the current sentence is a little brighter than the lines around it. */
+private const val CURRENT_LINE_ALPHA = 0.55f
+
+/** Headings stand out from the lines around them, as chapter separators. */
+private const val HEADING_LINE_ALPHA = 0.7f
 
 /** Lines run across most of the width, so they only fade out close to the edges. */
 private const val PAGE_EDGE_FADE = 0.12f
 
 /**
- * The paused view: one sentence per line, like a page. The current sentence is on the middle
- * line with its current word at the focal point; the sentences around it are dimmed and fade out
- * towards the edges. All lines start at the same x, so moving along the current sentence pans the
- * whole page.
- *
- * @param verticalOffset how far the lines are dragged, read while drawing so dragging only redraws.
+ * The paused view: one sentence per line, like a page. The current word sits at the focal point;
+ * the lines around it are dimmed and fade out towards the edges. Positions come from [geometry]
+ * and [scroll], which are read while drawing so scrolling only redraws.
  */
 @Composable
 fun SentenceLines(
     page: TextPage,
-    style: TextStyle,
-    verticalOffset: () -> Float,
+    geometry: PageGeometry,
+    scroll: PageScroll,
     modifier: Modifier = Modifier,
 ) {
-    val measurer = rememberTextMeasurer(cacheSize = 16)
     val ink = MaterialTheme.colorScheme.onSurface
     val accent = MaterialTheme.colorScheme.primary
     val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-    val current = currentLine(page, ink, accent)
-    val lineStyle = style.copy(color = ink.copy(alpha = CONTEXT_ALPHA))
+    val current = page.lines[page.currentLine]
+    // The focal letter is only marked once the page has settled.
+    val markFocalLetter = !scroll.isScrolling
+    val currentText =
+        remember(current, page.currentWord, ink, accent, markFocalLetter) {
+            currentLineText(current, page.currentWord, ink, accent, markFocalLetter)
+        }
 
     Canvas(
         modifier =
@@ -56,78 +58,53 @@ fun SentenceLines(
             .fillMaxSize()
             // Offscreen so the edge fades only mask what this canvas drew.
             .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-            .semantics { contentDescription = current.text.text },
+            .semantics { contentDescription = current.text },
     ) {
-        val focalX = size.width * FOCAL_LINE
         val centerY = size.height / 2
-        val lineHeight = style.fontSize.toPx() * LINE_SPACING
-        val offset = verticalOffset()
+        val textHeight = geometry.layout(current).size.height
+        val scrollX = scroll.scrollX.value
 
-        val currentLayout =
-            measurer.measure(current.text, style.copy(color = ink.copy(alpha = CURRENT_SENTENCE_ALPHA)), softWrap = false, maxLines = 1)
-        val left = focalX - currentLayout.focalCenter(current.focalChar)
-        val textHeight = currentLayout.size.height
+        page.lines.forEachIndexed { index, line ->
+            val top = centerY + scroll.offsetY + (index - page.currentLine) * geometry.lineHeight - textHeight / 2
+            if (top + textHeight < 0 || top > size.height) return@forEachIndexed
 
-        fun drawLine(
-            text: AnnotatedString,
-            lineIndex: Int,
-            lineStyle: TextStyle,
-        ) {
-            val top = centerY + offset + lineIndex * lineHeight - textHeight / 2
-            if (top + textHeight < 0 || top > size.height) return
-            drawText(measurer.measure(text, lineStyle, softWrap = false, maxLines = 1), topLeft = Offset(left, top))
+            val topLeft = Offset(geometry.lineX(line, scrollX), top)
+            when {
+                index == page.currentLine -> drawText(geometry.layout(currentText, line.isHeading), topLeft = topLeft)
+                line.isHeading -> drawText(geometry.layout(line), ink.copy(alpha = HEADING_LINE_ALPHA), topLeft)
+                else -> drawText(geometry.layout(line), ink.copy(alpha = CONTEXT_ALPHA), topLeft)
+            }
         }
-
-        page.before.asReversed().forEachIndexed { i, line -> drawLine(AnnotatedString(line), -(i + 1), lineStyle) }
-        page.after.forEachIndexed { i, line -> drawLine(AnnotatedString(line), i + 1, lineStyle) }
-        drawText(currentLayout, topLeft = Offset(left, centerY + offset - textHeight / 2))
 
         fadeHorizontalEdges(PAGE_EDGE_FADE)
         fadeVerticalEdges()
 
         if (!current.isHeading) {
-            drawFocalGuides(focalX, centerY - textHeight / 2, centerY + textHeight / 2, guideColor)
+            drawFocalGuides(geometry.focalX, centerY - textHeight / 2, centerY + textHeight / 2, guideColor)
         }
     }
 }
 
-private class CurrentLine(
-    val text: AnnotatedString,
-    /** Character the line is aligned on. For a heading, the focal letter of its first word, unmarked. */
-    val focalChar: Int,
-    val isHeading: Boolean,
-)
-
-private fun currentLine(
-    page: TextPage,
+/** The current line, with the current word in full ink and optionally its focal letter marked. */
+private fun currentLineText(
+    line: PageLine,
+    currentWord: Int,
     ink: Color,
     accent: Color,
-): CurrentLine {
-    if (page.currentWord == null) {
-        val heading =
-            buildAnnotatedString {
-                pushStyle(SpanStyle(color = ink, fontWeight = FontWeight.SemiBold))
-                append(page.current.joinToString(" "))
-            }
-        return CurrentLine(heading, focalIndex(page.current.firstOrNull().orEmpty().substringBefore(' ')), isHeading = true)
+    markFocalLetter: Boolean,
+): AnnotatedString = buildAnnotatedString {
+    append(line.text)
+    if (line.isHeading) {
+        addStyle(SpanStyle(color = ink), 0, length)
+        return@buildAnnotatedString
     }
-
-    var focalChar = 0
-    val text =
-        buildAnnotatedString {
-            page.current.forEachIndexed { index, word ->
-                if (index > 0) append(' ')
-                val start = length
-                append(word)
-                if (index == page.currentWord && word.isNotEmpty()) {
-                    val focal = start + focalIndex(word)
-                    addStyle(SpanStyle(color = ink), start, length)
-                    addStyle(SpanStyle(color = accent), focal, focal + 1)
-                    focalChar = focal
-                }
-            }
-        }
-    return CurrentLine(text, focalChar, isHeading = false)
+    addStyle(SpanStyle(color = ink.copy(alpha = CURRENT_LINE_ALPHA)), 0, length)
+    val start = line.wordStarts[currentWord]
+    addStyle(SpanStyle(color = ink), start, start + line.words[currentWord].length)
+    if (markFocalLetter && line.words[currentWord].isNotEmpty()) {
+        val focal = line.anchorChar(currentWord)
+        addStyle(SpanStyle(color = accent), focal, focal + 1)
+    }
 }
 
 /** Lines fade out towards the top, and towards the controls at the bottom. */

@@ -1,10 +1,12 @@
 package io.github.nanopenguin.pace.reader
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,8 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -27,6 +29,7 @@ import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,8 +41,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.nanopenguin.pace.book.SampleBook
 import io.github.nanopenguin.pace.ui.BackButton
 import io.github.nanopenguin.pace.ui.theme.PaceTheme
+import kotlin.math.abs
 
 private val WordFontSize = 40.sp
+
+/** Duration of the page's sideways glide to the current word. */
+private const val PAN_MILLIS = 200
 
 @Composable
 fun ReaderScreen(
@@ -57,7 +64,7 @@ fun ReaderScreen(
         onSeek = viewModel::seekTo,
         onPause = viewModel::pause,
         onStepWords = viewModel::stepWords,
-        onStepSentences = viewModel::stepSentences,
+        currentPage = { viewModel.uiState.value.page },
         onJumpToChapter = viewModel::jumpToChapter,
         onSlower = viewModel::slower,
         onFaster = viewModel::faster,
@@ -73,7 +80,8 @@ private fun ReaderScreen(
     onSeek: (Int) -> Unit,
     onPause: () -> Unit,
     onStepWords: (Int) -> Unit,
-    onStepSentences: (Int) -> Unit,
+    /** The latest page, read directly so that quick successive line steps never see a stale one. */
+    currentPage: () -> TextPage?,
     onJumpToChapter: (Int) -> Unit,
     onSlower: () -> Unit,
     onFaster: () -> Unit,
@@ -84,45 +92,81 @@ private fun ReaderScreen(
     var showChapters by rememberSaveable { mutableStateOf(false) }
     val wordStyle = MaterialTheme.typography.displaySmall.copy(fontSize = WordFontSize)
     val lineHeight = with(LocalDensity.current) { WordFontSize.toPx() } * LINE_SPACING
-    val verticalOffset = remember { mutableFloatStateOf(0f) }
+    val measurer = rememberTextMeasurer(cacheSize = 32)
+    val scroll = remember { PageScroll() }
 
-    // The gesture detector lives across recompositions, so it reads the latest callbacks.
-    val currentOnTap by rememberUpdatedState(onTogglePlayback)
-    val currentOnPause by rememberUpdatedState(onPause)
-    val currentOnStepWords by rememberUpdatedState(onStepWords)
-    val currentOnStepSentences by rememberUpdatedState(onStepSentences)
-
-    Box(
+    BoxWithConstraints(
         modifier =
         modifier
             .fillMaxSize()
             .then(if (state.isPlaying) Modifier.keepScreenOn() else Modifier)
-            .readerGestures(
-                haptics = LocalHapticFeedback.current,
-                lineHeight = lineHeight,
-                verticalOffset = verticalOffset,
-                onTap = { currentOnTap() },
-                onDragStart = { currentOnPause() },
-                onStepWords = { currentOnStepWords(it) },
-                onStepSentences = { currentOnStepSentences(it) },
-            ).safeDrawingPadding(),
+            .safeDrawingPadding(),
     ) {
-        val frame = state.frame
+        val focalX = constraints.maxWidth * FOCAL_LINE
+        val geometry = remember(measurer, wordStyle, focalX, lineHeight) { PageGeometry(measurer, wordStyle, focalX, lineHeight) }
         val page = state.page
-        when {
-            page != null -> SentenceLines(page, wordStyle, verticalOffset = { verticalOffset.floatValue })
+        val targetScrollX = page?.let { geometry.scrollXFor(it.lines[it.currentLine], it.currentWord) }
 
-            frame == null -> Unit
+        // Pans the page to the current word, but only once vertical scrolling has settled.
+        LaunchedEffect(targetScrollX, scroll.isScrolling) {
+            when {
+                targetScrollX == null -> scroll.isPlaced = false
 
-            frame.isHeading -> HeadingText(frame.text, Modifier.align(Alignment.Center))
+                scroll.isScrolling -> Unit
 
-            else -> FocusWord(
-                word = frame.text,
-                wordsBefore = state.wordsBefore,
-                wordsAfter = state.wordsAfter,
-                style = wordStyle,
-                modifier = Modifier.align(Alignment.Center),
-            )
+                !scroll.isPlaced || abs(targetScrollX - scroll.scrollX.value) > focalX -> {
+                    scroll.scrollX.snapTo(targetScrollX)
+                    scroll.isPlaced = true
+                }
+
+                else -> scroll.scrollX.animateTo(targetScrollX, tween(PAN_MILLIS))
+            }
+        }
+
+        // Moves to the word under the focal point on the line above or below.
+        val stepLine = { direction: Int ->
+            val current = currentPage()
+            val line = current?.lines?.getOrNull(current.currentLine + direction)
+            if (line != null) onSeek(line.firstFrame + geometry.wordAt(line, scroll.scrollX.value))
+            line != null
+        }
+
+        // The gesture detector lives across recompositions, so it reads the latest callbacks.
+        val currentOnTap by rememberUpdatedState(onTogglePlayback)
+        val currentOnPause by rememberUpdatedState(onPause)
+        val currentOnStepWords by rememberUpdatedState(onStepWords)
+        val currentStepLine by rememberUpdatedState(stepLine)
+
+        Box(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .readerGestures(
+                    haptics = LocalHapticFeedback.current,
+                    lineHeight = lineHeight,
+                    scroll = scroll,
+                    onTap = { currentOnTap() },
+                    onDragStart = { currentOnPause() },
+                    onStepWords = { currentOnStepWords(it) },
+                    onStepLine = { currentStepLine(it) },
+                ),
+        ) {
+            val frame = state.frame
+            when {
+                page != null -> SentenceLines(page, geometry, scroll)
+
+                frame == null -> Unit
+
+                frame.isHeading -> HeadingText(frame.text, Modifier.align(Alignment.Center))
+
+                else -> FocusWord(
+                    word = frame.text,
+                    wordsBefore = state.wordsBefore,
+                    wordsAfter = state.wordsAfter,
+                    style = wordStyle,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
 
         AnimatedVisibility(
@@ -203,10 +247,14 @@ private fun ReaderScreenPreview() {
                 wordsAfter = emptyList(),
                 page =
                 TextPage(
-                    current = "So she was considering in her own mind".split(" "),
+                    lines =
+                    listOf(
+                        PageLine(listOf("Down the Rabbit-Hole"), firstFrame = 0, isHeading = true),
+                        PageLine("So she was considering in her own mind".split(" "), firstFrame = 1, isHeading = false),
+                        PageLine("There was nothing so very remarkable in that;".split(" "), firstFrame = 9, isHeading = false),
+                    ),
+                    currentLine = 1,
                     currentWord = 3,
-                    before = listOf("Alice was beginning to get very tired of sitting by her sister on the bank"),
-                    after = listOf("There was nothing so very remarkable in that;"),
                 ),
                 chapters = listOf(Chapter("Down the Rabbit-Hole", level = 1, firstFrame = 0)),
                 chapterIndex = 0,
@@ -222,7 +270,7 @@ private fun ReaderScreenPreview() {
             onSeek = {},
             onPause = {},
             onStepWords = {},
-            onStepSentences = {},
+            currentPage = { null },
             onJumpToChapter = {},
             onSlower = {},
             onFaster = {},

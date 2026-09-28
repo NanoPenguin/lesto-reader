@@ -47,16 +47,17 @@ class RsvpText(
         return start..end
     }
 
-    /** Start of the sentence before the one containing [index], or 0 in the first sentence. */
-    fun previousSentenceStart(index: Int): Int {
-        val previous = sentenceAt(index).first - 1
-        return if (previous >= 0) sentenceAt(previous).first else 0
-    }
-
-    /** Start of the sentence after the one containing [index], or [index] in the last sentence. */
-    fun nextSentenceStart(index: Int): Int {
-        val next = sentenceAt(index).last + 1
-        return if (next <= lastIndex) next else index
+    /**
+     * Frames of the paused-page line containing [index]: its sentence, split into lines of at most
+     * [maxWords] words if longer, so that text without punctuation cannot make an endless line.
+     */
+    fun lineAt(
+        index: Int,
+        maxWords: Int,
+    ): IntRange {
+        val sentence = sentenceAt(index)
+        val start = sentence.first + (index - sentence.first) / maxWords * maxWords
+        return start..minOf(sentence.last, start + maxWords - 1)
     }
 
     /** Up to [count] words from the same block before [index], in reading order. */

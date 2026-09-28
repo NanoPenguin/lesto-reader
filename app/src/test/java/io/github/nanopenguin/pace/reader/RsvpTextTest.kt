@@ -75,18 +75,11 @@ class RsvpTextTest {
     }
 
     @Test
-    fun `going forward a sentence moves to the next sentence start`() {
-        assertEquals(words.indexOf("The"), text.nextSentenceStart(words.indexOf("It")))
-        assertEquals(11, text.nextSentenceStart(words.indexOf("it")))
-        assertEquals(text.lastIndex, text.nextSentenceStart(text.lastIndex))
-    }
-
-    @Test
-    fun `going back a sentence moves to the start of the previous sentence`() {
-        assertEquals(words.indexOf("It"), text.previousSentenceStart(words.indexOf("Rabbit")))
-        assertEquals(words.indexOf("It"), text.previousSentenceStart(words.indexOf("The")))
-        assertEquals(0, text.previousSentenceStart(words.indexOf("It")))
-        assertEquals(0, text.previousSentenceStart(0))
+    fun `long sentences are split into lines`() {
+        val ran = words.indexOf("ran,")
+        assertEquals(4..8, text.lineAt(ran, maxWords = 10))
+        assertEquals(6..7, text.lineAt(ran, maxWords = 2))
+        assertEquals(8..8, text.lineAt(words.indexOf("dear!”"), maxWords = 2))
     }
 
     @Test

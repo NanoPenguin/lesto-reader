@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.ceil
 
 private const val DEFAULT_WORDS_PER_MINUTE = 300
@@ -19,25 +18,11 @@ private val SpeedRange = 100..1000
 /** How many neighbouring words are offered on each side; the screen shows as many as fit. */
 private const val CONTEXT_WORD_COUNT = 8
 
-/** Sentences shown above and below the current one while paused; the screen fades out the rest. */
-private const val PAGE_SENTENCES = 6
+/** Lines shown above and below the current one while paused; the screen fades out the rest. */
+private const val PAGE_LINES = 6
 
-/** Lines are cut to this many words (around the current word on the current line); the rest is off-screen. */
-private const val PAGE_LINE_WORDS = 40
-
-/**
- * The text around the current position while paused: one sentence per line.
- *
- * @property currentWord index into [current] of the word at the focal point, or null for a heading.
- * @property before preceding sentences, nearest last.
- * @property after following sentences, nearest first.
- */
-data class TextPage(
-    val current: List<String>,
-    val currentWord: Int?,
-    val before: List<String>,
-    val after: List<String>,
-)
+/** Sentences longer than this are split over several page lines. */
+private const val MAX_LINE_WORDS = 200
 
 data class ReaderUiState(
     val bookTitle: String,
@@ -91,17 +76,6 @@ class ReaderViewModel(
     fun stepWords(count: Int) {
         pause()
         seekTo(position + count)
-    }
-
-    /** Moves [count] sentences forward, or back if negative. Pauses playback. */
-    fun stepSentences(count: Int) {
-        pause()
-        if (text.frames.isEmpty()) return
-        var target = position
-        repeat(abs(count)) {
-            target = if (count < 0) text.previousSentenceStart(target) else text.nextSentenceStart(target)
-        }
-        seekTo(target)
     }
 
     fun jumpToChapter(chapterIndex: Int) {
@@ -171,34 +145,27 @@ class ReaderViewModel(
     }
 
     private fun textPage(): TextPage {
-        val sentence = text.sentenceAt(position)
-        val first = maxOf(sentence.first, position - PAGE_LINE_WORDS / 2)
-        val last = minOf(sentence.last, first + PAGE_LINE_WORDS)
+        val current = text.lineAt(position, MAX_LINE_WORDS)
 
-        val before = mutableListOf<String>()
-        var start = sentence.first
-        while (before.size < PAGE_SENTENCES && start > 0) {
-            val previous = text.sentenceAt(start - 1)
-            before.add(0, lineText(previous))
-            start = previous.first
+        val before = ArrayDeque<IntRange>()
+        while (before.size < PAGE_LINES && (before.firstOrNull() ?: current).first > 0) {
+            before.addFirst(text.lineAt((before.firstOrNull() ?: current).first - 1, MAX_LINE_WORDS))
         }
-
-        val after = mutableListOf<String>()
-        var end = sentence.last
-        while (after.size < PAGE_SENTENCES && end < text.lastIndex) {
-            val next = text.sentenceAt(end + 1)
-            after.add(lineText(next))
-            end = next.last
+        val after = ArrayDeque<IntRange>()
+        while (after.size < PAGE_LINES && (after.lastOrNull() ?: current).last < text.lastIndex) {
+            after.addLast(text.lineAt((after.lastOrNull() ?: current).last + 1, MAX_LINE_WORDS))
         }
 
         return TextPage(
-            current = (first..last).map { text.frames[it].text },
-            currentWord = if (text.frames[position].isHeading) null else position - first,
-            before = before,
-            after = after,
+            lines = (before + listOf(current) + after).map(::pageLine),
+            currentLine = before.size,
+            currentWord = position - current.first,
         )
     }
 
-    private fun lineText(sentence: IntRange): String = (sentence.first..minOf(sentence.last, sentence.first + PAGE_LINE_WORDS))
-        .joinToString(" ") { text.frames[it].text }
+    private fun pageLine(frames: IntRange) = PageLine(
+        words = frames.map { text.frames[it].text },
+        firstFrame = frames.first,
+        isHeading = text.frames[frames.first].isHeading,
+    )
 }

@@ -1,0 +1,21 @@
+package io.github.nanopenguin.pace.reader
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class TextPageTest {
+    @Test
+    fun `words anchor on their focal letter within the line`() {
+        val line = PageLine(listOf("So", "she", "considered."), firstFrame = 0, isHeading = false)
+        assertEquals("So she considered.", line.text)
+        assertEquals(1, line.anchorChar(0))
+        assertEquals(4, line.anchorChar(1))
+        assertEquals(10, line.anchorChar(2))
+    }
+
+    @Test
+    fun `headings anchor on their first word`() {
+        val heading = PageLine(listOf("The Pool of Tears"), firstFrame = 0, isHeading = true)
+        assertEquals(1, heading.anchorChar(0))
+    }
+}
