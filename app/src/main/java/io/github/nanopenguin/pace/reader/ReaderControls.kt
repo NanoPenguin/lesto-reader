@@ -27,10 +27,14 @@ import androidx.compose.ui.unit.dp
 import io.github.nanopenguin.pace.R
 import kotlin.math.roundToInt
 
-/** Controls shown while paused: chapter, position within it, speed and context words. */
+/**
+ * Controls shown while paused: chapter, position within it, speed and context words. When [wide],
+ * as in landscape, the position sits between speed and context words, to leave room for the page.
+ */
 @Composable
 fun ReaderControls(
     state: ReaderUiState,
+    wide: Boolean,
     onSeek: (Int) -> Unit,
     onOpenChapters: () -> Unit,
     onSlower: () -> Unit,
@@ -38,9 +42,6 @@ fun ReaderControls(
     onShowContextChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val percent = (state.bookProgress * 100).roundToInt()
-
     // Opaque, with a soft top edge, so the paused page's lines slide under the controls.
     val background = MaterialTheme.colorScheme.surface
     Column(
@@ -52,6 +53,34 @@ fun ReaderControls(
     ) {
         ChapterTitle(state, onOpenChapters)
 
+        if (wide) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SpeedControl(state.wordsPerMinute, onSlower, onFaster)
+                Position(state, onSeek, modifier = Modifier.weight(1f).padding(horizontal = 16.dp))
+                ContextToggle(state.showContext, onShowContextChange)
+            }
+        } else {
+            Position(state, onSeek)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                SpeedControl(state.wordsPerMinute, onSlower, onFaster)
+                Spacer(modifier = Modifier.weight(1f))
+                ContextToggle(state.showContext, onShowContextChange)
+            }
+        }
+    }
+}
+
+/** A slider over the current section, with the progress and time left below it. */
+@Composable
+private fun Position(
+    state: ReaderUiState,
+    onSeek: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val percent = (state.bookProgress * 100).roundToInt()
+
+    Column(modifier = modifier) {
         Slider(
             value = state.position.toFloat(),
             onValueChange = { onSeek(it.roundToInt()) },
@@ -76,34 +105,47 @@ fun ReaderControls(
                 color = muted,
             )
         }
+    }
+}
 
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-            IconButton(onClick = onSlower) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_remove),
-                    contentDescription = stringResource(R.string.reader_slower),
-                )
-            }
-            Text(
-                text = stringResource(R.string.reader_words_per_minute, state.wordsPerMinute),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(min = 88.dp),
+@Composable
+private fun SpeedControl(
+    wordsPerMinute: Int,
+    onSlower: () -> Unit,
+    onFaster: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onSlower) {
+            Icon(
+                painter = painterResource(R.drawable.ic_remove),
+                contentDescription = stringResource(R.string.reader_slower),
             )
-            IconButton(onClick = onFaster) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_add),
-                    contentDescription = stringResource(R.string.reader_faster),
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            FilterChip(
-                selected = state.showContext,
-                onClick = { onShowContextChange(!state.showContext) },
-                label = { Text(stringResource(R.string.reader_context)) },
+        }
+        Text(
+            text = stringResource(R.string.reader_words_per_minute, wordsPerMinute),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 88.dp),
+        )
+        IconButton(onClick = onFaster) {
+            Icon(
+                painter = painterResource(R.drawable.ic_add),
+                contentDescription = stringResource(R.string.reader_faster),
             )
         }
     }
+}
+
+@Composable
+private fun ContextToggle(
+    showContext: Boolean,
+    onShowContextChange: (Boolean) -> Unit,
+) {
+    FilterChip(
+        selected = showContext,
+        onClick = { onShowContextChange(!showContext) },
+        label = { Text(stringResource(R.string.reader_context)) },
+    )
 }
 
 /** The current chapter's title; opens the chapter list when the book has chapters. */

@@ -213,6 +213,7 @@ private fun ReaderScreen(
         ) {
             ReaderControls(
                 state = state,
+                wide = constraints.maxWidth > constraints.maxHeight,
                 onSeek = onSeek,
                 onOpenChapters = { showChapters = true },
                 onSlower = onSlower,
