@@ -40,6 +40,8 @@ Requires the Android SDK and Java 25 (Android Studio includes both).
 See [AGENTS.md](AGENTS.md) for conventions and [docs/DESIGN.md](docs/DESIGN.md) for scope.
 Run `./gradlew spotlessApply lint test` before opening a pull request.
 
+Note that the app is intentionally kept minimalistic, and as such any PR may be rejected.
+
 ## License
 
 [MIT](LICENSE). Bundled assets: Atkinson Hyperlegible Next ([OFL](licenses/AtkinsonHyperlegibleNext-OFL.txt)),
