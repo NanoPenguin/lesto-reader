@@ -4,7 +4,7 @@ Guidance for AI agents and human contributors working on this repository.
 
 ## What this is
 
-**Pace** — a minimal, open-source (MIT) RSVP (Rapid Serial Visual Presentation) reader for Android.
+**Lesto** — a minimal, open-source (MIT) RSVP (Rapid Serial Visual Presentation) reader for Android.
 It opens EPUB and PDF files from device storage and shows them one word at a time.
 
 - Product and technical design: [docs/DESIGN.md](docs/DESIGN.md)
@@ -26,8 +26,8 @@ Minimum SDK 26. Gradle runs on Java 25, pinned in `gradle/gradle-daemon-jvm.prop
 ## Code layout
 
 ```
-app/src/main/java/io/github/nanopenguin/pace/
-  PaceApp.kt  Root composable and navigation
+app/src/main/java/io/github/nanopenguin/lesto/
+  LestoApp.kt  Root composable and navigation
   book/       Book model, EPUB/PDF parsers, parsed-book cache
   reader/     RSVP engine (pure Kotlin) and the reader screen
   library/    Recently opened books and reading positions

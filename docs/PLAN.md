@@ -4,8 +4,8 @@ Milestones are done in order. Each ends with a building, testable app.
 
 ## Open decisions
 
-- [x] Name: **Pace**
-- [x] Application ID: `io.github.nanopenguin.pace`
+- [x] Name: **Lesto**
+- [x] Application ID: `io.github.nanopenguin.lesto`
 - [x] License: MIT
 - [x] Typeface: bundled Atkinson Hyperlegible Next (OFL)
 - [x] Build environment: Android Studio SDK; Gradle daemon pinned to Java 25

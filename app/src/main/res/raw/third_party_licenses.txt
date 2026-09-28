@@ -1,4 +1,4 @@
-Pace uses the following third-party software and fonts. Their licenses follow.
+Lesto uses the following third-party software and fonts. Their licenses follow.
 
 Atkinson Hyperlegible Next
   Copyright 2020-2024 The Atkinson Hyperlegible Next Project Authors

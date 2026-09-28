@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Pace</string>
+    <string name="app_name">Lesto</string>
     <string name="navigate_back">Back</string>
 
     <string name="home_open_book">Open book</string>
@@ -22,7 +22,7 @@
     <string name="reader_context">Context</string>
     <string name="reader_chapters">Chapters</string>
     <string name="reader_error_missing">This book can no longer be found. It may have been moved or deleted.</string>
-    <string name="reader_error_no_access">Pace can no longer open this book. It may have been moved or deleted, or its access was lost. Open it again with Open book.</string>
+    <string name="reader_error_no_access">Lesto can no longer open this book. It may have been moved or deleted, or its access was lost. Open it again with Open book.</string>
     <string name="reader_error_unreadable">This file could not be opened as a book.</string>
     <string name="reader_error_no_text">No text found in this book. Scanned PDFs without a text layer can’t be read.</string>
     <string name="reader_chapter_progress">Chapter %1$d of %2$d · %3$d%%</string>

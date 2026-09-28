@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.nanopenguin.pace"
+    namespace = "io.github.nanopenguin.lesto"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.nanopenguin.pace"
+        applicationId = "io.github.nanopenguin.lesto"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

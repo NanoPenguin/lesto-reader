@@ -1,4 +1,4 @@
-# Pace
+# Lesto
 
 A minimal RSVP reader for Android: your EPUB and PDF books, one word at a time.
 
@@ -14,7 +14,7 @@ A minimal RSVP reader for Android: your EPUB and PDF books, one word at a time.
     <td align="center">Optional context words</td>
   </tr>
   <tr>
-    <td colspan="3" align="center"><img src="docs/media/light.gif" width="240" alt="Pace in light mode"></td>
+    <td colspan="3" align="center"><img src="docs/media/light.gif" width="240" alt="Lesto in light mode"></td>
   </tr>
   <tr>
     <td colspan="3" align="center">Also in light</td>

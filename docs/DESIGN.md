@@ -1,4 +1,4 @@
-# Design — Pace
+# Design — Lesto
 
 ## Product
 
