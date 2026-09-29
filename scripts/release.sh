@@ -69,9 +69,8 @@ CI_RESULT=$(gh run list --workflow CI --commit "$COMMIT" --limit 1 --json conclu
 
 # --- Build and sign -----------------------------------------------------------------------------
 
-rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR"
 ./gradlew --quiet clean assembleRelease
+mkdir -p "$OUT_DIR" # after the build, as clean removes build/
 
 echo "Signing with $KEYSTORE (alias $KEY_ALIAS)"
 "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
