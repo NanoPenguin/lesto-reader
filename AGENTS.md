@@ -8,7 +8,6 @@ Guidance for AI agents and human contributors working on this repository.
 It opens EPUB and PDF files from device storage and shows them one word at a time.
 
 - Product and technical design: [docs/DESIGN.md](docs/DESIGN.md)
-- Roadmap and current status: [docs/PLAN.md](docs/PLAN.md)
 
 ## Principles
 
@@ -64,10 +63,8 @@ scripts/      Signed GitHub releases, re-recording the README GIFs
 
 - Keep docs short and current. Update them in the same change as the code they describe.
 - Prefer editing an existing section over adding a new one. Do not add new doc files without a clear need.
-- `docs/PLAN.md` is the single source of truth for status; tick items as they land.
 
 ## Workflow for agents
 
-- Read `docs/PLAN.md` first and work on the current milestone only.
 - Make small, focused changes. Build and run tests before declaring work done.
 - Ask before adding dependencies, permissions, screens, or settings.
