@@ -25,6 +25,10 @@ A minimal RSVP reader for Android: your EPUB and PDF books, one word at a time.
 - Remembers where you left off
 - No permissions requested, no network, no tracking
 
+## Download
+
+Get the latest APK from [GitHub Releases](https://github.com/NanoPenguin/lesto-reader/releases/latest).
+
 ## Building
 
 Requires the Android SDK and Java 25 (Android Studio includes both).
@@ -32,8 +36,6 @@ Requires the Android SDK and Java 25 (Android Studio includes both).
 ```
 ./gradlew assembleDebug
 ```
-
-`./gradlew assembleRelease` builds an unsigned release APK; sign it with your own key using `apksigner`.
 
 ## Contributing
 
