@@ -45,7 +45,7 @@ import io.github.nanopenguin.lesto.ui.BackButton
 import io.github.nanopenguin.lesto.ui.SpeedControl
 import io.github.nanopenguin.lesto.ui.theme.LestoTheme
 
-private const val SOURCE_URL = "https://github.com/nanopenguin/lesto"
+private const val SOURCE_URL = "https://github.com/nanopenguin/lesto-reader"
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
