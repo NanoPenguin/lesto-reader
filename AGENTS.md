@@ -37,6 +37,7 @@ app/src/main/java/io/github/nanopenguin/lesto/
 licenses/     Licenses of bundled third-party assets
 docs/media/   README GIFs
 fastlane/     Store listing screenshots (F-Droid layout)
+scripts/      Signed GitHub releases, re-recording the README GIFs
 ```
 
 ## Conventions

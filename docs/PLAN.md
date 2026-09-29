@@ -14,7 +14,7 @@ Milestones are done in order. Each ends with a building, testable app.
 - [x] Gradle project, version catalog, single `app` module, R8 for release
 - [x] Theme (light/dark), empty Home / Reader / Settings screens, state-based navigation
 - [x] ktlint (Spotless), Android lint, unit test setup
-- [ ] GitHub Actions: build, test, lint on every PR (written, not yet run on GitHub)
+- [x] GitHub Actions: build, test, lint on every PR
 - [x] README, LICENSE, `.gitignore`
 
 ## M1 — RSVP core (with built-in sample text)
