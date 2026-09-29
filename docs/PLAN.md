@@ -50,5 +50,5 @@ Milestones are done in order. Each ends with a building, testable app.
 - [x] Test on a range of real books and devices (release build on a OnePlus 5T, Android 14: Gutenberg EPUBs in English, Spanish and German, arXiv PDFs, broken and encrypted files)
 - [x] Release build, F-Droid-friendly (no proprietary dependencies, no Play dependency metadata); signing stays out of the repo
 - [x] Changelog and store listing text
-- [ ] Sign the release APK, tag `v0.1.0` and publish the GitHub release
+- [x] Sign the release APK, tag `v0.1.0` and publish the GitHub release
 - [x] README GIFs and store screenshots
