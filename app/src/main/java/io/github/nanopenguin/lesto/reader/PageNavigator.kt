@@ -2,9 +2,13 @@ package io.github.nanopenguin.lesto.reader
 
 import androidx.compose.ui.geometry.Offset
 
+/** How far the page zooms out: to a quarter of its size, for an overview of the text around. */
+private const val MIN_ZOOM = 0.25f
+
 /**
- * Moves the paused page as one sheet, in any direction. While it moves, the word closest to the
- * focal point becomes the current one, so that it is highlighted and is where the page settles.
+ * Moves the paused page as one sheet, in any direction, and zooms it. While it moves, the word
+ * closest to the focal point becomes the current one, so that it is highlighted and is where the
+ * page settles.
  *
  * [currentPage] must return the latest page, which [onSeek] updates at once.
  */
@@ -26,20 +30,25 @@ class PageNavigator(
         scroll.scrollX = geometry.scrollXFor(line, page.currentWord)
     }
 
-    /** Moves the page by [delta]. Returns whether another word became the current one. */
+    /**
+     * Moves the page by [delta] on screen; zoomed out, that covers more of it. Returns whether
+     * another word became the current one.
+     */
     fun move(delta: Offset): Boolean {
         val page = currentPage() ?: return false
+        val step = delta / scroll.zoom
+        val margin = overscroll / scroll.zoom
         val offsets = geometry.lineOffsets(page)
         scroll.offsetY =
-            limit(scroll.offsetY, scroll.offsetY + delta.y, -overscroll - offsets.last(), overscroll - offsets.first())
+            limit(scroll.offsetY, scroll.offsetY + step.y, -margin - offsets.last(), margin - offsets.first())
         val firstWordX = page.lines.minOf { geometry.anchorX(it, 0) }
         val lastWordX = page.lines.maxOf { geometry.anchorX(it, it.words.lastIndex) }
         scroll.scrollX =
             limit(
                 scroll.scrollX,
-                scroll.scrollX + delta.x,
-                geometry.focalX - lastWordX - overscroll,
-                geometry.focalX - firstWordX + overscroll,
+                scroll.scrollX + step.x,
+                geometry.focalX - lastWordX - margin,
+                geometry.focalX - firstWordX + margin,
             )
 
         val lineIndex = page.lineNearest(scroll.offsetY, offsets)
@@ -51,6 +60,14 @@ class PageNavigator(
         scroll.anchorFrame = line.firstFrame
         onSeek(line.firstFrame + word)
         return true
+    }
+
+    /**
+     * Zooms the page by [factor] around the focal point, so the current word stays put. It zooms
+     * out to [MIN_ZOOM], and never in past its original size.
+     */
+    fun zoom(factor: Float) {
+        scroll.zoom = (scroll.zoom * factor).coerceIn(MIN_ZOOM, 1f)
     }
 
     /** Where the page comes to rest: with the current word on the focal point. */

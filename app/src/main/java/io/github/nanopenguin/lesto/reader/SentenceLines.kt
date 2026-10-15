@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -31,8 +32,8 @@ private const val PAGE_EDGE_FADE = 0.12f
 
 /**
  * The paused view: one sentence per line, like a page. The current word sits at the focal point;
- * the lines around it are dimmed and fade out towards the edges. Positions come from [geometry]
- * and [scroll], which are read while drawing so scrolling only redraws.
+ * the lines around it are dimmed and fade out towards the edges. Positions and zoom come from
+ * [geometry] and [scroll], which are read while drawing so scrolling and zooming only redraw.
  */
 @Composable
 fun SentenceLines(
@@ -67,15 +68,22 @@ fun SentenceLines(
         val anchor = page.lines.indexOfFirst { it.firstFrame == scroll.anchorFrame }
         val anchorY = if (scroll.isScrolling && anchor >= 0) scroll.offsetY - offsets[anchor] else 0f
 
-        page.lines.forEachIndexed { index, line ->
-            val top = centerY + anchorY + offsets[index] - textHeight / 2
-            if (top + textHeight < 0 || top > size.height) return@forEachIndexed
+        // The page is laid out at its original size, and shrinks around the focal point when zoomed out.
+        val zoom = scroll.zoom
+        val visibleTop = centerY - centerY / zoom
+        val visibleBottom = centerY + (size.height - centerY) / zoom
 
-            val topLeft = Offset(scroll.scrollX, top)
-            when {
-                index == page.currentLine -> drawText(geometry.layout(currentText, line.isHeading), topLeft = topLeft)
-                line.isHeading -> drawText(geometry.layout(line), ink.copy(alpha = HEADING_LINE_ALPHA), topLeft)
-                else -> drawText(geometry.layout(line), ink.copy(alpha = CONTEXT_ALPHA), topLeft)
+        scale(zoom, pivot = Offset(geometry.focalX, centerY)) {
+            page.lines.forEachIndexed { index, line ->
+                val top = centerY + anchorY + offsets[index] - textHeight / 2
+                if (top + textHeight < visibleTop || top > visibleBottom) return@forEachIndexed
+
+                val topLeft = Offset(scroll.scrollX, top)
+                when {
+                    index == page.currentLine -> drawText(geometry.layout(currentText, line.isHeading), topLeft = topLeft)
+                    line.isHeading -> drawText(geometry.layout(line), ink.copy(alpha = HEADING_LINE_ALPHA), topLeft)
+                    else -> drawText(geometry.layout(line), ink.copy(alpha = CONTEXT_ALPHA), topLeft)
+                }
             }
         }
 
@@ -83,7 +91,7 @@ fun SentenceLines(
         fadeVerticalEdges()
 
         if (!current.isHeading) {
-            drawFocalGuides(geometry.focalX, centerY - textHeight / 2, centerY + textHeight / 2, guideColor)
+            drawFocalGuides(geometry.focalX, centerY - textHeight * zoom / 2, centerY + textHeight * zoom / 2, guideColor, zoom)
         }
     }
 }

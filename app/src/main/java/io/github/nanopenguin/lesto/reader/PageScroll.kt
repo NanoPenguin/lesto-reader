@@ -20,6 +20,12 @@ class PageScroll {
     /** First frame of the line that [offsetY] is measured from. */
     var anchorFrame by mutableIntStateOf(0)
 
+    /**
+     * Size of the page on screen, around the focal point: 1 is the original size, smaller is
+     * zoomed out. [scrollX] and [offsetY] are measured at the original size.
+     */
+    var zoom by mutableFloatStateOf(1f)
+
     /** True from the start of a drag until the page has settled. */
     var isScrolling by mutableStateOf(false)
 

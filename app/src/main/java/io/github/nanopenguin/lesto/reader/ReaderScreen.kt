@@ -24,9 +24,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
@@ -53,6 +55,8 @@ import io.github.nanopenguin.lesto.appContainer
 import io.github.nanopenguin.lesto.settings.TextSize
 import io.github.nanopenguin.lesto.ui.BackButton
 import io.github.nanopenguin.lesto.ui.theme.LestoTheme
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /** Duration of the page's sideways glide to the current word. */
@@ -60,6 +64,12 @@ private const val PAN_MILLIS = 200
 
 /** How far the paused page can be dragged past its first or last line and word. */
 private val Overscroll = 32.dp
+
+/** Duration of the sweep that zooms the page back to its original size before playing. */
+private const val SWEEP_IN_MILLIS = 300
+
+/** Enough to keep every line of a fully zoomed-out page measured, and the current one highlighted. */
+private const val MEASURE_CACHE_SIZE = 64
 
 /** Reads the book at [uri]. Its view model, and with it the book, lives as long as this screen. */
 @Composable
@@ -82,6 +92,7 @@ fun ReaderScreen(
         onTogglePlayback = viewModel::togglePlayback,
         onSeek = viewModel::seekTo,
         onPause = viewModel::pause,
+        onPageZoomChange = viewModel::setPageZoom,
         currentPage = { viewModel.uiState.value.page },
         onJumpToChapter = viewModel::jumpToChapter,
         onSlower = viewModel::slower,
@@ -98,6 +109,7 @@ private fun ReaderScreen(
     onTogglePlayback: () -> Unit,
     onSeek: (Int) -> Unit,
     onPause: () -> Unit,
+    onPageZoomChange: (Float) -> Unit,
     /** The latest page, read directly so that quick successive moves never see a stale one. */
     currentPage: () -> TextPage?,
     onJumpToChapter: (Int) -> Unit,
@@ -128,8 +140,29 @@ private fun ReaderScreen(
     val wordSize = state.textSize.wordSize
     val wordStyle = MaterialTheme.typography.displaySmall.copy(fontSize = wordSize)
     val lineHeight = with(LocalDensity.current) { wordSize.toPx() } * LINE_SPACING
-    val measurer = rememberTextMeasurer(cacheSize = 32)
+    val measurer = rememberTextMeasurer(cacheSize = MEASURE_CACHE_SIZE)
     val scroll = remember { PageScroll() }
+
+    val currentOnPageZoomChange by rememberUpdatedState(onPageZoomChange)
+    LaunchedEffect(scroll) { snapshotFlow { scroll.zoom }.collect { currentOnPageZoomChange(it) } }
+
+    // Zoomed out, playing starts with a sweep back to the original size, so the word to read stays where it is.
+    val scope = rememberCoroutineScope()
+    var sweepIn by remember { mutableStateOf<Job?>(null) }
+    val togglePlayback: () -> Unit = {
+        when {
+            sweepIn?.isActive == true -> Unit
+
+            state.isPlaying || scroll.zoom == 1f -> onTogglePlayback()
+
+            else ->
+                sweepIn =
+                    scope.launch {
+                        animate(scroll.zoom, 1f, animationSpec = tween(SWEEP_IN_MILLIS)) { value, _ -> scroll.zoom = value }
+                        onTogglePlayback()
+                    }
+        }
+    }
 
     BoxWithConstraints(
         modifier =
@@ -163,7 +196,7 @@ private fun ReaderScreen(
         val navigator = PageNavigator(geometry, scroll, currentPage, onSeek, overscroll)
 
         // The gesture detector lives across recompositions, so it reads the latest callbacks.
-        val currentOnTap by rememberUpdatedState(onTogglePlayback)
+        val currentOnTap by rememberUpdatedState(togglePlayback)
         val currentOnPause by rememberUpdatedState(onPause)
         val currentNavigator by rememberUpdatedState(navigator)
 
@@ -183,11 +216,14 @@ private fun ReaderScreen(
                     haptics = LocalHapticFeedback.current,
                     scroll = scroll,
                     onTap = { currentOnTap() },
-                    onDragStart = {
+                    onGestureStart = {
+                        // Taking hold of the page stops the sweep, and with it the playback it leads to.
+                        sweepIn?.cancel()
                         currentOnPause()
                         currentNavigator.start()
                     },
                     onMove = { currentNavigator.move(it) },
+                    onZoom = { currentNavigator.zoom(it) },
                     restingPlace = { currentNavigator.restingPlace() },
                 ),
         ) {
@@ -321,6 +357,7 @@ private fun ReaderScreenPreview() {
             onTogglePlayback = {},
             onSeek = {},
             onPause = {},
+            onPageZoomChange = {},
             currentPage = { null },
             onJumpToChapter = {},
             onSlower = {},

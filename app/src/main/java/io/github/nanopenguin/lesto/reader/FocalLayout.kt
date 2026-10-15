@@ -39,16 +39,22 @@ internal fun DrawScope.fadeHorizontalEdges(fraction: Float) {
     )
 }
 
-/** Two short vertical marks above and below the focal letter. */
+/**
+ * Two short vertical marks above and below the focal letter. On a zoomed-out page they shrink by
+ * [zoom] with the line spacing, so they stay clear of the lines around.
+ */
 internal fun DrawScope.drawFocalGuides(
     focalX: Float,
     textTop: Float,
     textBottom: Float,
     color: Color,
+    zoom: Float = 1f,
 ) {
-    val top = textTop - GuideGap.toPx()
-    val bottom = textBottom + GuideGap.toPx()
+    val gap = GuideGap.toPx() * zoom
+    val length = GuideLength.toPx() * zoom
+    val top = textTop - gap
+    val bottom = textBottom + gap
     val stroke = 1.dp.toPx()
-    drawLine(color, Offset(focalX, top - GuideLength.toPx()), Offset(focalX, top), stroke)
-    drawLine(color, Offset(focalX, bottom), Offset(focalX, bottom + GuideLength.toPx()), stroke)
+    drawLine(color, Offset(focalX, top - length), Offset(focalX, top), stroke)
+    drawLine(color, Offset(focalX, bottom), Offset(focalX, bottom + length), stroke)
 }

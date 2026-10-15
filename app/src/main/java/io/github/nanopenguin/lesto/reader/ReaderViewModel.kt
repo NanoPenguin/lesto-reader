@@ -28,7 +28,10 @@ import kotlin.math.ceil
 /** How many neighbouring words are offered on each side; the screen shows as many as fit. */
 private const val CONTEXT_WORD_COUNT = 8
 
-/** Lines shown above and below the current one while paused; the screen fades out the rest. */
+/**
+ * Lines shown above and below the current one while paused, at the page's original size; the
+ * screen fades out the rest. Zoomed out, proportionally more are shown.
+ */
 private const val PAGE_LINES = 6
 
 /** Sentences longer than this are split over several page lines. */
@@ -91,6 +94,7 @@ class ReaderViewModel(
     private var wordsPerMinute = DEFAULT_WORDS_PER_MINUTE
     private var showContext = false
     private var textSize = TextSize.Medium
+    private var pageLines = PAGE_LINES
     private var playback: Job? = null
     private var pendingSave: Job? = null
 
@@ -159,6 +163,14 @@ class ReaderViewModel(
     fun jumpToChapter(chapterIndex: Int) {
         pause()
         seekTo(text.chapters[chapterIndex].firstFrame)
+    }
+
+    /** The paused page is shown at [zoom] times its original size, so more lines fit around the current one. */
+    fun setPageZoom(zoom: Float) {
+        val lines = ceil(PAGE_LINES / zoom).toInt()
+        if (lines == pageLines) return
+        pageLines = lines
+        publish()
     }
 
     fun slower() = setSpeed(wordsPerMinute - SPEED_STEP)
@@ -246,11 +258,11 @@ class ReaderViewModel(
         val current = text.lineAt(position, MAX_LINE_WORDS)
 
         val before = ArrayDeque<IntRange>()
-        while (before.size < PAGE_LINES && (before.firstOrNull() ?: current).first > 0) {
+        while (before.size < pageLines && (before.firstOrNull() ?: current).first > 0) {
             before.addFirst(text.lineAt((before.firstOrNull() ?: current).first - 1, MAX_LINE_WORDS))
         }
         val after = ArrayDeque<IntRange>()
-        while (after.size < PAGE_LINES && (after.lastOrNull() ?: current).last < text.lastIndex) {
+        while (after.size < pageLines && (after.lastOrNull() ?: current).last < text.lastIndex) {
             after.addLast(text.lineAt((after.lastOrNull() ?: current).last + 1, MAX_LINE_WORDS))
         }
 
