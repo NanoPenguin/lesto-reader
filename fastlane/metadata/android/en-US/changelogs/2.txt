@@ -1,0 +1,4 @@
+- Pinch the paused page to zoom out and move through it faster
+- A haptic tick only when the page settles on a new word
+- No more shift into place when opening a book or jumping to a chapter
+- Smoother dragging through long sentences

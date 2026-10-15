@@ -3,7 +3,7 @@ Lesto is a minimal RSVP (Rapid Serial Visual Presentation) reader. It shows your
 <ul>
 <li>Opens EPUB and PDF books from your device</li>
 <li>Finds chapters, and skips headers, footers and page numbers in PDFs</li>
-<li>Pause to see the page around the current word, and drag to move through it</li>
+<li>Pause to see the page around the current word, drag to move through it, and pinch to zoom out</li>
 <li>Optional context words beside the current word</li>
 <li>Adjustable reading speed, text size, and light or dark theme</li>
 <li>Remembers where you left off in every book</li>

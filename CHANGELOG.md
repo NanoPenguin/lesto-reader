@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Pinch the paused page to zoom out for an overview, and move through the text faster. Tapping play zooms back in.
+- A light haptic tick when the page settles on a new word, instead of one for every word passed.
+- Opening a book, pausing and jumping to a chapter no longer shift the page into place.
+- Smoother dragging through long sentences.
+
 ## 0.1.0
 
 First release.
