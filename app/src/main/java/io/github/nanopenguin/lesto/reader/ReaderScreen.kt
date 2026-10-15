@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,10 +58,6 @@ import io.github.nanopenguin.lesto.ui.BackButton
 import io.github.nanopenguin.lesto.ui.theme.LestoTheme
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-
-/** Duration of the page's sideways glide to the current word. */
-private const val PAN_MILLIS = 200
 
 /** How far the paused page can be dragged past its first or last line and word. */
 private val Overscroll = 32.dp
@@ -176,20 +173,11 @@ private fun ReaderScreen(
         val page = state.page
         val targetScrollX = page?.let { geometry.scrollXFor(it.lines[it.currentLine], it.currentWord) }
 
-        // Pans the page to the current word, but only once vertical scrolling has settled.
-        LaunchedEffect(targetScrollX, scroll.isScrolling) {
-            when {
-                targetScrollX == null -> scroll.isPlaced = false
-
-                scroll.isScrolling -> Unit
-
-                !scroll.isPlaced || abs(targetScrollX - scroll.scrollX) > focalX -> {
-                    scroll.scrollX = targetScrollX
-                    scroll.isPlaced = true
-                }
-
-                else -> animate(scroll.scrollX, targetScrollX, animationSpec = tween(PAN_MILLIS)) { value, _ -> scroll.scrollX = value }
-            }
+        // Unless a gesture is moving it, the page shows the current word on the focal point, placed
+        // before the frame is drawn: on opening, pausing or a jump, its first frame is already in place.
+        val isScrolling = scroll.isScrolling
+        SideEffect {
+            if (targetScrollX != null && !isScrolling) scroll.scrollX = targetScrollX
         }
 
         val overscroll = with(LocalDensity.current) { Overscroll.toPx() }

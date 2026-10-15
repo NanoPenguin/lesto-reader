@@ -28,7 +28,4 @@ class PageScroll {
 
     /** True from the start of a drag until the page has settled. */
     var isScrolling by mutableStateOf(false)
-
-    /** Whether [scrollX] has been set since the page appeared; the first placement snaps. */
-    var isPlaced = false
 }
